@@ -38,7 +38,7 @@ pub enum Token {
     // unary
     Not,    // !
     Minus,  // -
-    BitNot, // ~
+    // BitNot, // ~
     // op
     Plus, // +
     Mul,  // *
@@ -47,8 +47,9 @@ pub enum Token {
     // logical
     Or,     // ||
     And,    // &&
-    BitOr,  // |
-    BitAnd, // &
+    // BitOr,  // |
+    // BitAnd, // &
+    // Xor, // ^
     LShift, // <<
     RShift, // >>
     // Comparison

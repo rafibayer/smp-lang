@@ -63,10 +63,6 @@ impl Scanner {
                 self.advance();
                 Ok(Token::Minus)
             }
-            '~' => {
-                self.advance();
-                Ok(Token::BitNot)
-            }
             '+' => {
                 self.advance();
                 Ok(Token::Plus)
@@ -82,20 +78,37 @@ impl Scanner {
             '%' => {
                 self.advance();
                 Ok(Token::Mod)
-            }
+            },
             // multi-char tokens
             ':' => {
                 // consume : and =
                 self.advance();
-                self.advance();
-                Ok(Token::Assign)
+                if self.get_char() == '=' {
+                    self.advance();
+                    return Ok(Token::Assign);
+                }
+                Err(ScannerError::UnexpectedToken(self.get_char().to_string()))
             }
             // multi-char operators
             '|'  => {
-                self.parse_repeated(Token::BitOr, Token::Or)
+                // consume |
+                self.advance();
+                if '|' == self.get_char() {
+                   // consume |
+                   self.advance();
+                   return Ok(Token::Or);
+                }
+                Err(ScannerError::UnexpectedToken(self.get_char().to_string()))
             }
             '&' => {
-                self.parse_repeated(Token::BitAnd, Token::And)
+                // consume &
+                self.advance();
+                if '|' == self.get_char() {
+                   // consume &
+                   self.advance();
+                   return Ok(Token::And);
+                }
+                Err(ScannerError::UnexpectedToken(self.get_char().to_string()))
             }
             '!' => {
                 // consume !
@@ -132,11 +145,15 @@ impl Scanner {
 
             // keywords, function names, variable names
             'a'..='z' | 'A'..='Z' => self.parse_word(),
+            // eof
             EOF_CHAR => Ok(Token::Eof),
+            // unknown character
             unknown => Err(ScannerError::UnexpectedToken(unknown.to_string())),
         }
     }
 
+    // gets the character in input at cur.
+    // returns the EOF_CHAR if we have overun input
     fn get_char(&self) -> char {
         if self.input.len() > self.cur {
             return self.input.as_bytes()[self.cur] as char;
@@ -144,32 +161,17 @@ impl Scanner {
         EOF_CHAR
     }
 
+    // advances scanner to next byte
     fn advance(&mut self) {
         self.cur += 1;
     }
 
+    // skips over all whitespace in input
     fn skip_whitespace(&mut self) {
 
         while self.get_char().is_whitespace() {
             self.advance();
         }
-    }
-
-    // helper to parse repeated operators
-    // example: parse_repeated('&', Token::BitAnd, Token:And).
-    fn parse_repeated(&mut self, single: Token, double: Token) -> Result<Token, ScannerError> {
-        let first = self.get_char();
-        // consume first
-        self.advance();
-        let second = self.get_char();
-        if second == first {
-            // consume second
-            self.advance();
-            return Ok(double);
-        } 
-
-        // otherwise it's single
-        Ok(single)
     }
 
     // helper to parse angle bracket tokens (< or >)
@@ -191,6 +193,7 @@ impl Scanner {
         Ok(single)
     }
 
+    // parses a word, returns either a keyword or a name
     fn parse_word(&mut self) -> Result<Token, ScannerError> {
         assert!(self.get_char().is_alphabetic());
     
@@ -210,7 +213,9 @@ impl Scanner {
         Ok(Token::Name(word))
     }
 
+    // parses a floating point number
     fn parse_num(&mut self) -> Result<Token, ScannerError> {
+        assert!(self.get_char().is_ascii_digit());
         let mut num = String::new();
 
         // consume until we hit non digit or non .
@@ -239,5 +244,32 @@ impl Scanner {
             "while" => Some(Token::While),
             _ => None
         }
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+
+    use super::*;
+
+    #[test]
+    fn one_plus_one() {
+        let mut s = Scanner::new(String::from("1+1"));
+        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
+        assert_eq!(s.next_token().unwrap(), Token::Plus);
+        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
+        assert_eq!(s.next_token().unwrap(), Token::Eof);
+        assert_eq!(s.next_token().unwrap(), Token::Eof);
+    }
+
+    #[test]
+    fn decimals() {
+        let mut s = Scanner::new(String::from("1.5+1"));
+        assert_eq!(s.next_token().unwrap(), Token::Num(1.5));
+        assert_eq!(s.next_token().unwrap(), Token::Plus);
+        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
+        assert_eq!(s.next_token().unwrap(), Token::Eof);
+
     }
 }
