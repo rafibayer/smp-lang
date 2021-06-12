@@ -7,17 +7,20 @@ args ::= "" | name "," args
 block ::= "{" statement* "}"
 statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
 nest ::= "if" exp block | "if" exp block "else" block | "while" exp block
-exp ::= name | num | exp op exp | exp "(" exps ")" | "(" exp ")" | unop exp
+exp ::= name | num | exp op exp | name "(" exps ")" | "(" exp ")" | unop exp
 exps ::= "" | exp "," exps
-unop ::= "!" | "-" | "~"
+unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"
-logical ::= "||" | "&&" | "&" | "|" | "^" | "<<" | ">>"
+logical ::= "||" | "&&"
 comparison ::= "==" | "<" | ">" | "<=" | ">=" | "!="
 */
 
-#[derive(Debug, PartialEq)]
+
+
+#[derive(Debug, PartialEq, EnumDiscriminants, Clone)]
 pub enum Token {
     // file
+    Start, // placeholder before first call to next_token()
     Eof,
     // basic
     Def,          // def
@@ -60,5 +63,4 @@ pub enum Token {
     MoreEqual, // >=
     NotEqual,  // !=
 }
-
 

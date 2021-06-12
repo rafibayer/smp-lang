@@ -16,16 +16,24 @@ impl Defs {
         }
     }
 
+
+    
     pub fn bind_func(&mut self, name: String, value: Rc<Def>) {
         self.funcs.insert(name, value);
     }
     
-    pub fn get_func(&self, name: &String) -> Result<&Def, InterpreterError> {
+    pub fn get_func(&self, name: &str) -> Result<&Def, InterpreterError> {
         match self.funcs.get(name) {
             Some(val) => Ok(val),
-            None => Err(InterpreterError::UnboundFunc(name.clone())),
+            None => Err(InterpreterError::UnboundFunc(name.to_string())),
         }
     }
 
+}
+
+impl Default for Defs {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 

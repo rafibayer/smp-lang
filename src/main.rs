@@ -10,15 +10,10 @@ fn main() {
         std::io::stdin().read_line(&mut line)
             .expect("Failed to read line");
 
-        let mut scan = Scanner::new(line);
+        let scan = Scanner::new(line).unwrap();
 
-        // print tokens until eof
-        loop {
-            let token = scan.next_token().unwrap();
-            match token {
-                Token::Eof => break,
-                other => print!("{:?} ", other),
-            }
+        for token in scan.into_iter() {
+            print!("{:?} ", token.unwrap());
         }
         println!();
     }

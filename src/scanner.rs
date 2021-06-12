@@ -14,22 +14,42 @@ const EOF_CHAR: char = '\0';
 pub struct Scanner {
     input: String,
     cur: usize,
+    next: Token,
 }
 
 impl Scanner {
 
-    pub fn new(input: String) -> Scanner {
+    pub fn new(input: String) -> Result<Scanner, ScannerError> {
+        let mut scanner = 
         Scanner {
             input,
             cur: 0,
-        }
+            next: Token::Start,
+        };
+
+        scanner.next_token()?;
+        Ok(scanner)
+    }
+
+    pub fn is_eof(&self) -> bool {
+        self.cur >= self.input.len()
+    }
+
+    pub fn peek_next(&self) -> Token {
+        self.next.clone()
+    }
+    
+    pub fn next_token(&mut self) -> Result<Token, ScannerError> {
+        let result = self.next.clone();
+        self.next = self.get_next()?;
+        Ok(result)
     }
 
     // returns the next recognized token in the input
-    pub fn next_token(&mut self) -> Result<Token, ScannerError> {
+    pub fn get_next(&mut self) -> Result<Token, ScannerError> {
         self.skip_whitespace();
 
-        if self.cur >= self.input.len() {
+        if self.is_eof() {
             return Ok(Token::Eof);
         }
 
@@ -206,7 +226,7 @@ impl Scanner {
         }
 
         // check if word is a keyword, if so return it
-        if let Some(keyword) = Scanner::to_keyword(word.as_str()) {
+        if let Some(keyword) = Scanner::get_keyword(word.as_str()) {
             return Ok(keyword);
         }
         // else, a name
@@ -235,7 +255,7 @@ impl Scanner {
     // tries to convert a word to a keyword,
     // returning None if word is not a valid keyword
     // todo: better name, also should this go in tokens.rs?
-    fn to_keyword(word: &str) -> Option<Token> {
+    fn get_keyword(word: &str) -> Option<Token> {
         match word {
             "def" => Some(Token::Def),
             "return" => Some(Token::Return),
@@ -247,6 +267,21 @@ impl Scanner {
     }
 }
 
+impl Iterator for Scanner {
+    type Item = Result<Token, ScannerError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let res = self.next_token();
+        if res.is_ok() {
+            if let Token::Eof = res.as_ref().unwrap() {
+                return None;
+            }
+        }
+
+        Some(res)
+    }
+}
+
 
 #[cfg(test)]
 mod test {
@@ -255,7 +290,7 @@ mod test {
 
     #[test]
     fn one_plus_one() {
-        let mut s = Scanner::new(String::from("1+1"));
+        let mut s = Scanner::new(String::from("1+1")).unwrap();
         assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
         assert_eq!(s.next_token().unwrap(), Token::Plus);
         assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
@@ -265,11 +300,54 @@ mod test {
 
     #[test]
     fn decimals() {
-        let mut s = Scanner::new(String::from("1.5+1"));
+        let mut s = Scanner::new(String::from("1.5+1")).unwrap();
         assert_eq!(s.next_token().unwrap(), Token::Num(1.5));
         assert_eq!(s.next_token().unwrap(), Token::Plus);
         assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
         assert_eq!(s.next_token().unwrap(), Token::Eof);
 
+    }
+
+    #[test]
+    fn scan_program() {
+        let s = Scanner::new(String::from(r#"
+        def main() {
+            if (1 + 1) == 2 {
+                return 1; 
+            }
+            return 0
+        }
+        "#)).unwrap();
+        let expected = vec![
+            Token::Def,
+            Token::Name(String::from("main")),
+            Token::LParen,
+            Token::RParen,
+            Token::LCurly,
+            Token::If,
+            Token::LParen,
+            Token::Num(1f64),
+            Token::Plus,
+            Token::Num(1f64),
+            Token::RParen,
+            Token::Equals,
+            Token::Num(2f64),
+            Token::LCurly,
+            Token::Return,
+            Token::Num(1f64),
+            Token::SColon,
+            Token::RCurly,
+            Token::Return,
+            Token::Num(0f64),
+            Token::RCurly,
+        ];
+
+        let mut actual = Vec::new();
+        for token in s.into_iter() {
+            actual.push(token.unwrap());
+        }
+
+        assert_eq!(expected, actual);
+        
     }
 }

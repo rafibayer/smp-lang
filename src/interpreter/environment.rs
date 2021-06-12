@@ -19,10 +19,10 @@ impl Environment {
         self.vars.insert(name, value);
     }
 
-    pub fn get_var(&self, name: &String) -> Result<f64, InterpreterError> {
+    pub fn get_var(&self, name: &str) -> Result<f64, InterpreterError> {
         match self.vars.get(name) {
             Some(val) => Ok(*val),
-            None => Err(InterpreterError::UnboundVar(name.clone())),
+            None => Err(InterpreterError::UnboundVar(name.to_string())),
         }
     }
 

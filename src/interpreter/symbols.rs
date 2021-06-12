@@ -35,6 +35,7 @@ pub struct Block {
     pub statements: Vec<Statement>
 }
 
+// statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
 #[derive(Debug, Clone)]
 pub enum StatementKind {
     Return(Exp),

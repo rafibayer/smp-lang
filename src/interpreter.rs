@@ -3,6 +3,9 @@ mod environment;
 pub mod defs;
 pub mod symbols;
 
+#[cfg(test)]
+mod test;
+
 use std::rc::Rc;
 
 use crate::scanner::{Scanner, ScannerError};
@@ -60,7 +63,7 @@ impl Interpreter {
         }
     }
 
-    fn eval_call(&self, name: &String, exps: &Exps, env: &mut Environment) -> Result<Option<f64>, InterpreterError> {
+    fn eval_call(&self, name: &str, exps: &Exps, env: &mut Environment) -> Result<Option<f64>, InterpreterError> {
         // compute arg actuals
         let mut actuals = Vec::new();
         for exp in &exps.exps {
@@ -68,7 +71,7 @@ impl Interpreter {
         }
 
         // get function
-        let func = self.defs.get_func(name)?;
+        let func = self.defs.get_func(&name.to_string())?;
 
         // ensure num actuals matches num args
         if actuals.len() != func.args.names.len() {
@@ -77,14 +80,13 @@ impl Interpreter {
 
         // create a new environment with args bound to actuals
         let mut func_env = Environment::new();
-        for i in 0..actuals.len() {
-            func_env.bind_var(func.args.names[i].clone(), actuals[i]);
+        for (i, actual) in actuals.iter().enumerate() {
+            func_env.bind_var(func.args.names[i].clone(), *actual);
         }
 
 
-        // evaluate block under new environment
-        return self.eval_block(&func.block, &mut func_env);
-
+        // evaluate func block under new environment
+        self.eval_block(&func.block, &mut func_env)
     }
 
     fn eval_exp(&self, exp: &Exp, env: &mut Environment) -> Result<f64, InterpreterError> {
@@ -103,11 +105,9 @@ impl Interpreter {
     fn eval_block(&self, block: &Block, env: &mut Environment) -> Result<Option<f64>, InterpreterError> {
         for statement in &block.statements {
             let res = self.eval_statement(statement, env)?;
-            match statement.statement {
-                // if statement is a return statement, stop evaluating and return block result
-                StatementKind::Return(_) => return Ok(res),
-                // otherwise continue
-                _ => {}
+            // if the statment is a return statment, stop evaluating and return as block result
+            if let StatementKind::Return(_) = statement.statement {
+                return Ok(res);
             }
         }
 
@@ -245,14 +245,14 @@ impl Interpreter {
                 if cond_val {
                     match self.eval_block(&then, env) {
                         // return the result of the block (will have value if block returned)
-                        Ok(opt) => return Ok(opt),
-                        Err(err) => return Err(err),
+                        Ok(opt) => Ok(opt),
+                        Err(err) => Err(err),
                     }
                 } else { // else, evaluate the else block
                     match self.eval_block(&else_, env) {
                         // return the result of the block (will have value if block returned)
-                        Ok(opt) => return Ok(opt),
-                        Err(err) => return Err(err),
+                        Ok(opt) => Ok(opt),
+                        Err(err) => Err(err),
                     }
                 }
                 
@@ -302,125 +302,5 @@ impl Interpreter {
 
     fn eval_conditional(&self, cond: &Exp, env: &mut Environment) -> Result<bool, InterpreterError> {
         Ok(Interpreter::truthy(self.eval_exp(cond, env)?))
-    }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::*;
-
-    #[test]
-    fn test_assign_return() {
-        /* AST for program:
-        def main() {
-            a := 1;
-            return a;
-        }
-        */
-        let prog = Program {
-            defs: vec![
-                Def {
-                    // def main
-                    name: String::from("main"),
-                    // ()
-                    args: Args {
-                        names: Vec::new()
-                    },
-                    // {
-                    block: Block {
-                        statements: vec![
-                            // a :=
-                            Statement {
-                                statement: StatementKind::Assign {
-                                    name: String::from("a"),
-                                    exp: Exp {
-                                        // 1;
-                                        exp: Box::new(ExpKind::Num(1f64))
-                                    }
-                                }
-                            },
-                            // return
-                            Statement {
-                                statement: StatementKind::Return(
-                                    Exp {
-                                        // a;
-                                        exp: Box::new(ExpKind::Name(String::from("a")))
-                                    }
-                                )
-                            }
-                        ]
-                    // }
-                    },
-                },
-            ],
-        };
-
-        let inter = Interpreter::new(prog);
-        assert_eq!(1f64, inter.execute().expect("Lang error").unwrap());
-    }
-
-    #[test]
-    fn test_call_fn() {
-        /*
-        AST for program
-        def other(a) {
-            return a;
-        }
-
-        def main() {
-            return other(3);
-        }
-        */
-        let prog = Program {
-            defs: vec![
-                Def {
-                    /*
-                    def other(a) {
-                        return a;
-                    }
-                    */
-                    name: String::from("other"),
-                    args: Args { names: vec![String::from("a")]},
-                    block: Block {
-                        statements: vec![
-                            Statement {
-                                statement: StatementKind::Return(
-                                    Exp {
-                                        exp: Box::new(ExpKind::Name(String::from("a")))
-                                    }
-                                )
-                            }
-                        ]
-                    }
-                },
-                /*
-                def main() {
-                    return other(3);
-                }
-                */
-                Def {
-                    name: String::from("main"),
-                    args: Args { names: Vec::new() },
-                    block: Block {
-                        statements: vec![
-                            Statement {
-                                // return other(3);
-                                statement: StatementKind::Return(
-                                    Exp {
-                                        exp: Box::new(ExpKind::Call(String::from("other"),
-                                        Exps { exps: vec![ Exp { exp: Box::new(ExpKind::Num(3f64))}] }))
-                                    }
-                                )
-                            }
-                        ]
-                    // }
-                    },
-                },
-            ],
-        };
-
-        let inter = Interpreter::new(prog);
-        dbg!(inter.execute().unwrap());
     }
 }
