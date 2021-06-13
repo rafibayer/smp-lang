@@ -3,7 +3,6 @@ use std::{collections::HashMap, rc::Rc};
 use super::{InterpreterError, symbols::Def};
 
 
-
 #[derive(Debug, Clone)]
 pub struct Defs {
     funcs: HashMap<String, Rc<Def>>
@@ -15,8 +14,6 @@ impl Defs {
             funcs: HashMap::new()
         }
     }
-
-
     
     pub fn bind_func(&mut self, name: String, value: Rc<Def>) {
         self.funcs.insert(name, value);
