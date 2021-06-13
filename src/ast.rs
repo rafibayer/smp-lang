@@ -124,6 +124,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     StatementKind::Assign { name, exp }
                 }
                 // array assingment
+                // Todo: we also need to handle array-access here.
                 Token::LBracket => {
                     // consume [
                     consume_token(scanner, TokenDiscriminants::LBracket)?;
@@ -360,7 +361,9 @@ fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<T
     if variant_equal(&next, variant) {
         return Ok(next);
     }
-    dbg!("expected: {}", variant);
+    // todo: remove 
+    let disc: TokenDiscriminants = next.clone().into();
+    println!("expected: {:?}, got: {:?}", variant, disc);
     Err(ASTError::UnexpectedToken(next))
 }
 

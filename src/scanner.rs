@@ -1,6 +1,9 @@
 use crate::tokens::Token;
 
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug)]
 pub enum ScannerError {
     UnexpectedToken(String),
@@ -162,10 +165,24 @@ impl Scanner {
                 Err(ScannerError::UnexpectedToken(self.get_char().to_string()))
             },
             '<' => {
-               self.parse_angle(Token::Less, Token::LShift, Token::LessEqual)
+                // consume <
+                self.advance();
+                if '=' == self.get_char() {
+                    // consume =
+                    self.advance();
+                    return Ok(Token::LessEqual);
+                }
+                Ok(Token::Less)
             }
             '>' => {
-               self.parse_angle(Token::More, Token::RShift, Token::MoreEqual)
+                // consume >
+                self.advance();
+                if '=' == self.get_char() {
+                    // consume =
+                    self.advance();
+                    return Ok(Token::MoreEqual);
+                }
+                Ok(Token::More)
             }
 
             // numbers
@@ -208,25 +225,6 @@ impl Scanner {
         }
     }
 
-    // helper to parse angle bracket tokens (< or >)
-    fn parse_angle(&mut self, single: Token, double: Token, equal: Token) -> Result<Token, ScannerError> {
-        assert!(self.get_char() == '<' || self.get_char() == '>');
-        let first = self.get_char();
-        // consume first
-        self.advance();
-        let second = self.get_char();
-        if second == first {
-            // consume second
-            self.advance();
-            return Ok(double);
-        } else if '=' == second {
-            // consume =
-            self.advance();
-            return Ok(equal);
-        }
-        Ok(single)
-    }
-
     // parses a word, returns either a keyword or a name
     fn parse_word(&mut self) -> Result<Token, ScannerError> {
         assert!(self.get_char().is_alphabetic());
@@ -266,9 +264,8 @@ impl Scanner {
 
     }
 
-    // tries to convert a word to a keyword,
-    // returning None if word is not a valid keyword
-    // todo: better name, also should this go in tokens.rs?
+    // tries to convert a str to a keyword,
+    // returning None if the str is not a valid keyword
     fn get_keyword(word: &str) -> Option<Token> {
         match word {
             "def" => Some(Token::Def),
@@ -291,99 +288,6 @@ impl Iterator for Scanner {
                 return None;
             }
         }
-
         Some(res)
-    }
-}
-
-
-#[cfg(test)]
-mod test {
-
-    use super::*;
-
-    #[test]
-    fn one_plus_one() {
-        let mut s = Scanner::new(String::from("1+1")).unwrap();
-        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
-        assert_eq!(s.next_token().unwrap(), Token::Plus);
-        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
-        assert_eq!(s.next_token().unwrap(), Token::Eof);
-        assert_eq!(s.next_token().unwrap(), Token::Eof);
-    }
-
-    #[test]
-    fn decimals() {
-        let mut s = Scanner::new(String::from("1.5+1")).unwrap();
-        assert_eq!(s.next_token().unwrap(), Token::Num(1.5));
-        assert_eq!(s.next_token().unwrap(), Token::Plus);
-        assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
-        assert_eq!(s.next_token().unwrap(), Token::Eof);
-
-    }
-
-    #[test]
-    fn arrays() {
-        let s = Scanner::new(String::from(r#"
-        a := [5];
-        "#)).unwrap();
-        let expected = vec![
-            Token::Name(String::from("a")),
-            Token::Assign,
-            Token::RBracket,
-            Token::Num(5f64),
-            Token::LBracket,
-            Token::SColon,
-        ];
-
-        let mut actual = Vec::new();
-        for token in s.into_iter() {
-            actual.push(token.unwrap());
-        }
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn scan_program() {
-        let s = Scanner::new(String::from(r#"
-        def main() {
-            if (1 + 1) == 2 {
-                return 1; 
-            }
-            return 0
-        }
-        "#)).unwrap();
-        let expected = vec![
-            Token::Def,
-            Token::Name(String::from("main")),
-            Token::LParen,
-            Token::RParen,
-            Token::LCurly,
-            Token::If,
-            Token::LParen,
-            Token::Num(1f64),
-            Token::Plus,
-            Token::Num(1f64),
-            Token::RParen,
-            Token::Equals,
-            Token::Num(2f64),
-            Token::LCurly,
-            Token::Return,
-            Token::Num(1f64),
-            Token::SColon,
-            Token::RCurly,
-            Token::Return,
-            Token::Num(0f64),
-            Token::RCurly,
-        ];
-
-        let mut actual = Vec::new();
-        for token in s.into_iter() {
-            actual.push(token.unwrap());
-        }
-
-        assert_eq!(expected, actual);
-        
     }
 }

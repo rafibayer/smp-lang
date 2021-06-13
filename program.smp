@@ -1,7 +1,5 @@
 
 def main() {
     a := [5];
-    a;
-    return 1;
-
+    a[4] + 1;
 }

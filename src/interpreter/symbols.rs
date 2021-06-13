@@ -16,12 +16,13 @@ comparison ::= "==" | "<" | ">" | "<=" | ">=" | "!="
 */
 
 
-
+// program ::= def*
 #[derive(Debug, Clone)]
 pub struct Program {
     pub defs: Vec<Def>
 }
 
+// def ::= "def" name "(" args ")" block
 #[derive(Debug, Clone)]
 pub struct Def {
     pub name: String,
@@ -29,11 +30,13 @@ pub struct Def {
     pub block: Block,
 }
 
+// args ::= "" | name "," args
 #[derive(Debug, Clone)]
 pub struct Args {
     pub names: Vec<String>
 }
 
+// block ::= "{" statement* "}"
 #[derive(Debug, Clone)]
 pub struct Block {
     pub statements: Vec<Statement>
@@ -54,6 +57,7 @@ pub struct Statement {
     pub statement: StatementKind
 }
 
+// nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
 #[derive(Debug, Clone)]
 pub enum NestKind {
     If {cond: Exp, then: Block},
@@ -90,7 +94,7 @@ pub struct Exps {
     pub exps: Vec<Exp>
 }
 
-// unop ::= "!" | "-" | "~"
+// unop ::= "!" | "-" 
 #[derive(Debug, Clone)]
 pub enum UnopKind {
     Not,
@@ -126,11 +130,6 @@ pub struct Op {
 pub enum LogicalKind {
     Or,
     And,
-    // BitAnd,
-    // BitOr,
-    // Xor,
-    // LShift,
-    // RShift,
 }
 
 #[derive(Debug, Clone)]

@@ -77,7 +77,7 @@ fn test_arr() {
             arr[i] := i;
             i := i + 1;
         }
-        a[4];
+        (arr[4]);
         return arr;
     }
     ");

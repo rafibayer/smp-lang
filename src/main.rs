@@ -1,4 +1,4 @@
-use std::{fs, env};
+use std::{env, fs, process};
 
 use smp::ast;
 use smp::{scanner::Scanner};
@@ -11,7 +11,13 @@ fn main(){
             .unwrap();
     let program = ast::generate_ast(&mut scanner).unwrap();
     let interpreter = Interpreter::new(program);
-    let result = interpreter.execute().unwrap();
+    let result = match interpreter.execute() {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("Error: {:#?}", e);
+            process::exit(1);
+        },
+    };
     if result.is_some() {
         println!("Main: {}", result.unwrap());
     } else {

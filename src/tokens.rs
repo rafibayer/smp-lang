@@ -20,6 +20,7 @@ pub enum Token {
     // file
     Start, // placeholder before first call to next_token()
     Eof,   // returned once we've passed last token
+
     // basic
     Def,          // def
     Name(String), // function/variable name
@@ -33,28 +34,27 @@ pub enum Token {
     Return,       // return
     SColon,       // ;
     Assign,       // :=
+
     // flow
     If,       // if
     Else,     // else
     While,    // while
     Num(f64), // numeric value
+
     // unary
     Not,   // !
     Minus, // -
-    // BitNot, // ~
+
     // op
     Plus, // +
     Mul,  // *
     Div,  // /
     Mod,  // %
+
     // logical
     Or,  // ||
     And, // &&
-    // BitOr,  // |
-    // BitAnd, // &
-    // Xor, // ^
-    LShift, // <<
-    RShift, // >>
+
     // Comparison
     Equals,    // ==
     Less,      // <
