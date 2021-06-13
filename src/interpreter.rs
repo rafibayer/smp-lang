@@ -105,10 +105,14 @@ impl Interpreter {
             }
             ExpKind::Paren(exp) => self.eval_exp(exp, env),
             ExpKind::Unary(op, exp) => self.eval_unop(op, exp, env),
-            ExpKind::ArrayInit { size } => Ok(Value::from(vec![0f64; *size as usize])),
+            ExpKind::ArrayInit { size } => {
+                let size = self.eval_exp(size, env)?;
+                Ok(Value::from(vec![0f64; Value::into_f64(size)? as usize]))
+            },
             ExpKind::ArrayAccess { name, index } => {
                 let arr = Value::into_vec(env.get_var(name)?)?;
-                Ok(Value::from(arr[*index as usize]))
+                let i = Value::into_f64(self.eval_exp(index, env)?)?;
+                Ok(Value::from(arr[i as usize]))
             }
         }
     }

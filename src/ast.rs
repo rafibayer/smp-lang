@@ -123,6 +123,22 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     consume_token(scanner, TokenDiscriminants::SColon)?;
                     StatementKind::Assign { name, exp }
                 }
+                // array assingment
+                Token::LBracket => {
+                    // consume [
+                    consume_token(scanner, TokenDiscriminants::LBracket)?;
+                    // consume index exp
+                    let index_exp = generate_exp(scanner)?;
+                    // consume ]
+                    consume_token(scanner, TokenDiscriminants::RBracket)?;
+                    // consume :=
+                    consume_token(scanner, TokenDiscriminants::Assign)?;
+                    // consume value exp
+                    let value = generate_exp(scanner)?;
+                    // consume ;
+                    consume_token(scanner, TokenDiscriminants::SColon)?;
+                    StatementKind::ArrayAssign { name, index_exp, value }
+                }
                 // otherwise, just an exp starting with a name (e.i usage or fn call)
                 _ => {
                     let exp = generate_exp_name(scanner, name)?;
@@ -155,7 +171,8 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
         Token::Num(value) => {
             match scanner.peek_next() {
                 // just a number followed by ; or , or )
-                Token::SColon | Token::Comma | Token::RParen => ExpKind::Num(value),
+                // todo, i think if i include curly here, i can ditch parens in nest
+                Token::SColon | Token::Comma | Token::RParen | Token::RBracket => ExpKind::Num(value),
                 // Infix operators
                 _ => {
                     // generate infix: num op exp
@@ -167,6 +184,16 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
                     )?
                 }
             }
+        }
+        // array initialization
+        Token::LBracket => {
+            // consume size exp
+            let exp = generate_exp(scanner)?;
+
+            // consume ]
+            consume_token(scanner, TokenDiscriminants::RBracket)?;
+
+            ExpKind::ArrayInit { size: exp }
         }
         // parenthesized exp
         Token::LParen => {
@@ -242,7 +269,7 @@ fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTErr
 fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTError> {
     let exp = match scanner.peek_next() {
         // name on it's own
-        Token::SColon | Token::Comma | Token::RParen => ExpKind::Name(name),
+        Token::SColon | Token::Comma | Token::RParen  | Token::RBracket => ExpKind::Name(name),
         // name followed by parens (function call)
         Token::LParen => {
             // consume (
@@ -260,6 +287,15 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
             // consume )
             consume_token(scanner, TokenDiscriminants::RParen)?;
             ExpKind::Call(name, Exps { exps })
+        }
+        Token::LBracket => {
+            // consume [
+            consume_token(scanner, TokenDiscriminants::LBracket)?;
+            // consume exp
+            let index = generate_exp(scanner)?;
+            // consume ]
+            consume_token(scanner, TokenDiscriminants::RBracket)?;
+            ExpKind::ArrayAccess{ name, index }
         }
         // infix starting with name
         _ => {

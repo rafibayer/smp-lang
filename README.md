@@ -67,7 +67,39 @@ def main() {
     }
 }
 ```
- 
+
+### Arrays
+The following program initializes an array of 5 elements, sets their values in a loop, 
+outputs the final value, and returns the entire array.
+```
+def main() {
+    arr := [5];
+    i := 0;
+    while (i < 5) {
+        arr[i] := i;
+        i := i + 1;
+    }
+    (a[4]);
+    return arr;
+}
+```
+
+## Known bugs
+Currently there is unresolved ambiguity between array assigment expressions: 
+```
+a[4] := 123;
+```
+and array output expressions: 
+```
+a[4];
+``` 
+The second example will currently cause an error.
+As a temporary workaround, you can wrap array output expressions in parens:  
+```
+(a[4]);
+```
+
+
 ## Should You Use This Language?
 No! :)  
 This was purely for fun and for learning. This language is most certainly full of bugs, and the code is not very extensible in its current state. However, I hope that anyone reading this can learn from my experiences and mistakes while implementing their own interpreters in Rust or any other language. 

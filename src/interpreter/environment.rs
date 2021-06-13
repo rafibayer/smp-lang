@@ -1,19 +1,19 @@
 use super::InterpreterError;
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
-#[derive(Debug, EnumDiscriminants, Display, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, EnumDiscriminants, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     Num(f64),
-    Arr(Vec<f64>),
+    Array(Vec<f64>),
 }
 
 impl Value {
     pub fn into_f64(self) -> Result<f64, InterpreterError> {
         Ok(match self {
             Value::Num(val) => val,
-            Value::Arr(_) => {
+            Value::Array(_) => {
                 return Err(InterpreterError::TypeError {
-                    found_type: ValueDiscriminants::Arr,
+                    found_type: ValueDiscriminants::Array,
                     expected_type: ValueDiscriminants::Num,
                 })
             }
@@ -22,11 +22,11 @@ impl Value {
 
     pub fn into_vec(self) -> Result<Vec<f64>, InterpreterError> {
         Ok(match self {
-            Value::Arr(val) => val,
+            Value::Array(val) => val,
             Value::Num(_) => {
                 return Err(InterpreterError::TypeError {
                     found_type: ValueDiscriminants::Num,
-                    expected_type: ValueDiscriminants::Arr,
+                    expected_type: ValueDiscriminants::Array,
                 })
             }
         })
@@ -41,7 +41,16 @@ impl From<f64> for Value {
 
 impl From<Vec<f64>> for Value {
     fn from(val: Vec<f64>) -> Self {
-        Value::Arr(val)
+        Value::Array(val)
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Num(val) => write!(f, "{}", val),
+            Value::Array(val) => write!(f, "{:?}", val),
+        }
     }
 }
 

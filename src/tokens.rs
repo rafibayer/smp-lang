@@ -5,9 +5,9 @@ program ::= def*
 def ::= "def" name "(" args ")" block
 args ::= "" | name "," args
 block ::= "{" statement* "}"
-statement ::= "return" exp ";" | name ":=" exp ";" | name"["num"]" := exp ";"|  exp ";" | nest
+statement ::= "return" exp ";" | name ":=" exp ";" | name "[" exp "]" ":=" exp ";"|  exp ";" | nest
 nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
-exp ::= name | num | "["num"]" | exp op exp | name"["num"]" | name "(" exps ")" | "(" exp ")" | unop exp
+exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | "(" exp ")" | unop exp
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"

@@ -71,9 +71,9 @@ pub struct Nest {
 pub enum ExpKind {
     Name(String),
     Num(f64),
-    ArrayInit{size: f64}, // "[" exp "]" 
+    ArrayInit{size: Exp}, // "[" exp "]" 
     Infix(Exp, Op, Exp),
-    ArrayAccess{name: String, index: f64}, // name "[" exp "]"
+    ArrayAccess{name: String, index: Exp}, // name "[" exp "]"
     Call(String, Exps),
     Paren(Exp),
     Unary(Unop, Exp),

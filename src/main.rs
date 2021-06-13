@@ -13,7 +13,7 @@ fn main(){
     let interpreter = Interpreter::new(program);
     let result = interpreter.execute().unwrap();
     if result.is_some() {
-        println!("Main: {:?}", result.unwrap());
+        println!("Main: {}", result.unwrap());
     } else {
         println!("Main: None");
 

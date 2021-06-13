@@ -80,11 +80,11 @@ impl Scanner {
             }
             '[' => {
                 self.advance();
-                Ok(Token::RBracket)
+                Ok(Token::LBracket)
             }
             ']' => {
                 self.advance();
-                Ok(Token::LBracket)
+                Ok(Token::RBracket)
             }
             ';' => {
                 self.advance();
