@@ -9,6 +9,8 @@ use crate::interpreter::symbols::LogicalKind;
 use super::ASTError;
 
 
+// lookup table to convert from token to corresponding infix operator,
+// returns InvalidOperator error if token doesn't correspond to an OpKind
 pub fn lookup_infix(token: Token) -> Result<OpKind, ASTError> {
     Ok(match token {
         // standard

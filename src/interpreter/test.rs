@@ -51,7 +51,7 @@ mod tests {
         };
 
         let inter = Interpreter::new(prog);
-        assert_eq!(1f64, inter.execute().unwrap().unwrap());
+        assert_eq!(1f64, Value::into_f64(inter.execute().unwrap().unwrap()).unwrap());
     }
 
     #[test]
@@ -108,13 +108,12 @@ mod tests {
                                 )
                             }
                         ]
-                    // }
                     },
                 },
             ],
         };
 
         let inter = Interpreter::new(prog);
-        assert_eq!(3f64, inter.execute().unwrap().unwrap());
+        assert_eq!(3f64, Value::into_f64(inter.execute().unwrap().unwrap()).unwrap());
     }
 }

@@ -1,4 +1,5 @@
 use smp;
+use smp::interpreter::environment::Value;
 
 #[test]
 fn test_simple() {
@@ -10,7 +11,7 @@ fn test_simple() {
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(1f64));
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(1f64)));
 }
 
 #[test]
@@ -30,7 +31,7 @@ fn test_recursive() {
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(3628800f64));
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(3628800f64)));
 }
 
 #[test]
@@ -48,7 +49,7 @@ fn test_multiarg() {
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(120f64));
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(120f64)));
 }
 
 #[test]
@@ -62,5 +63,5 @@ fn test_nested_parens() {
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(1f64));
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(1f64)));
 }

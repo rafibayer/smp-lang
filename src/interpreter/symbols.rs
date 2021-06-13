@@ -1,13 +1,13 @@
-/* 
+/*
 LANGUAGE GRAMMAR
 SOURCE: http://canonical.org/~kragen/memory-models/
 program ::= def*
 def ::= "def" name "(" args ")" block
 args ::= "" | name "," args
 block ::= "{" statement* "}"
-statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
+statement ::= "return" exp ";" | name ":=" exp ";" | name "[" exp "]" ":=" exp ";"|  exp ";" | nest
 nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
-exp ::= name | num | exp op exp | name "(" exps ")" | "(" exp ")" | unop exp
+exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | "(" exp ")" | unop exp
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"
@@ -39,11 +39,12 @@ pub struct Block {
     pub statements: Vec<Statement>
 }
 
-// statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
+// statement ::= "return" exp ";" | name ":=" exp ";" | name "[" num "]" := exp ";"|  exp ";" | nest
 #[derive(Debug, Clone)]
 pub enum StatementKind {
     Return(Exp),
     Assign {name: String, exp: Exp},
+    ArrayAssign {name: String, index_exp: Exp, value: Exp},
     Exp(Exp),
     Nest(Nest),
 }
@@ -65,12 +66,14 @@ pub struct Nest {
     pub nest: NestKind
 }
 
-// exp ::= name | num | exp op exp | exp "(" exps ")" | "(" exp ")" | unop exp
+// exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | "(" exp ")" | unop exp
 #[derive(Debug, Clone)]
 pub enum ExpKind {
     Name(String),
     Num(f64),
+    ArrayInit{size: f64}, // "[" exp "]" 
     Infix(Exp, Op, Exp),
+    ArrayAccess{name: String, index: f64}, // name "[" exp "]"
     Call(String, Exps),
     Paren(Exp),
     Unary(Unop, Exp),

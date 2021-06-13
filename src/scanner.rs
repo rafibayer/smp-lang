@@ -78,6 +78,14 @@ impl Scanner {
                 self.advance();
                 Ok(Token::RCurly)
             }
+            '[' => {
+                self.advance();
+                Ok(Token::RBracket)
+            }
+            ']' => {
+                self.advance();
+                Ok(Token::LBracket)
+            }
             ';' => {
                 self.advance();
                 Ok(Token::SColon)
@@ -312,6 +320,28 @@ mod test {
         assert_eq!(s.next_token().unwrap(), Token::Num(1.0));
         assert_eq!(s.next_token().unwrap(), Token::Eof);
 
+    }
+
+    #[test]
+    fn arrays() {
+        let s = Scanner::new(String::from(r#"
+        a := [5];
+        "#)).unwrap();
+        let expected = vec![
+            Token::Name(String::from("a")),
+            Token::Assign,
+            Token::RBracket,
+            Token::Num(5f64),
+            Token::LBracket,
+            Token::SColon,
+        ];
+
+        let mut actual = Vec::new();
+        for token in s.into_iter() {
+            actual.push(token.unwrap());
+        }
+
+        assert_eq!(expected, actual);
     }
 
     #[test]

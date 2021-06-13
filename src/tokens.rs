@@ -1,13 +1,13 @@
-/* 
+/*
 LANGUAGE GRAMMAR
 SOURCE: http://canonical.org/~kragen/memory-models/
 program ::= def*
 def ::= "def" name "(" args ")" block
 args ::= "" | name "," args
 block ::= "{" statement* "}"
-statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
+statement ::= "return" exp ";" | name ":=" exp ";" | name"["num"]" := exp ";"|  exp ";" | nest
 nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
-exp ::= name | num | exp op exp | name "(" exps ")" | "(" exp ")" | unop exp
+exp ::= name | num | "["num"]" | exp op exp | name"["num"]" | name "(" exps ")" | "(" exp ")" | unop exp
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"
@@ -15,13 +15,11 @@ logical ::= "||" | "&&"
 comparison ::= "==" | "<" | ">" | "<=" | ">=" | "!="
 */
 
-
-
 #[derive(Debug, PartialEq, EnumDiscriminants, Clone)]
 pub enum Token {
     // file
     Start, // placeholder before first call to next_token()
-    Eof,
+    Eof,   // returned once we've passed last token
     // basic
     Def,          // def
     Name(String), // function/variable name
@@ -30,17 +28,19 @@ pub enum Token {
     Comma,        // ,
     LCurly,       // {
     RCurly,       // }
+    LBracket,     // [
+    RBracket,     // ]
     Return,       // return
     SColon,       // ;
     Assign,       // :=
-    /* flow */
+    // flow
     If,       // if
     Else,     // else
     While,    // while
     Num(f64), // numeric value
     // unary
-    Not,    // !
-    Minus,  // -
+    Not,   // !
+    Minus, // -
     // BitNot, // ~
     // op
     Plus, // +
@@ -48,8 +48,8 @@ pub enum Token {
     Div,  // /
     Mod,  // %
     // logical
-    Or,     // ||
-    And,    // &&
+    Or,  // ||
+    And, // &&
     // BitOr,  // |
     // BitAnd, // &
     // Xor, // ^
@@ -63,4 +63,3 @@ pub enum Token {
     MoreEqual, // >=
     NotEqual,  // !=
 }
-
