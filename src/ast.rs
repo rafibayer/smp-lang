@@ -1,4 +1,3 @@
-use std::env::var;
 
 use crate::interpreter::symbols::*;
 use crate::scanner::{Scanner, ScannerError};

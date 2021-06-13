@@ -44,7 +44,7 @@ impl Scanner {
     pub fn next_token(&mut self) -> Result<Token, ScannerError> {
         let result = self.next.clone();
         self.next = self.get_next()?;
-        println!("src: {}", self.src_line);
+        // println!("src: {}", self.src_line);
         Ok(result)
     }
 

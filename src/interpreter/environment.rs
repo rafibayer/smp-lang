@@ -1,7 +1,5 @@
-use std::{collections::HashMap, rc::Rc};
-use crate::tokens::Token;
-use super::{InterpreterError, symbols::Def};
-
+use super::InterpreterError;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Environment {
@@ -25,6 +23,4 @@ impl Environment {
             None => Err(InterpreterError::UnboundVar(name.to_string())),
         }
     }
-
-   
 }
