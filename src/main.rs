@@ -1,8 +1,8 @@
 use std::{fs, env};
 
-use simple_lang::ast;
-use simple_lang::{scanner::Scanner};
-use simple_lang::interpreter::Interpreter;
+use smp::ast;
+use smp::{scanner::Scanner};
+use smp::interpreter::Interpreter;
 
 
 fn main(){
@@ -11,7 +11,13 @@ fn main(){
             .unwrap();
     let program = ast::generate_ast(&mut scanner).unwrap();
     let interpreter = Interpreter::new(program);
-    println!("Main: {:?}", interpreter.execute().unwrap());
+    let result = interpreter.execute().unwrap();
+    if result.is_some() {
+        println!("Main: {:?}", result.unwrap());
+    } else {
+        println!("Main: None");
+
+    }
 }
 
 fn get_source_file(args: env::Args) -> Result<String, String> {

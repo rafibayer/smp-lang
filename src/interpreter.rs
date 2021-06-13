@@ -11,7 +11,7 @@ use environment::Environment;
 use symbols::*;
 
 const MAIN: &str = "main";
-const EPSILON: f64 = 0.00001;
+const EPSILON: f64 = 0.0000001;
 
 #[derive(Debug)]
 pub enum InterpreterError {

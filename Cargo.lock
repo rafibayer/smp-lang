@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "simple_lang"
+name = "smp"
 version = "0.1.0"
 dependencies = [
  "strum",
