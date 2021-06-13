@@ -15,6 +15,7 @@ pub struct Scanner {
     input: String,
     cur: usize,
     next: Token,
+    src_line: usize,
 }
 
 impl Scanner {
@@ -25,6 +26,7 @@ impl Scanner {
             input,
             cur: 0,
             next: Token::Start,
+            src_line: 1,
         };
 
         scanner.next_token()?;
@@ -42,11 +44,12 @@ impl Scanner {
     pub fn next_token(&mut self) -> Result<Token, ScannerError> {
         let result = self.next.clone();
         self.next = self.get_next()?;
+        println!("src: {}", self.src_line);
         Ok(result)
     }
 
     // returns the next recognized token in the input
-    pub fn get_next(&mut self) -> Result<Token, ScannerError> {
+    fn get_next(&mut self) -> Result<Token, ScannerError> {
         self.skip_whitespace();
 
         if self.is_eof() {
@@ -123,7 +126,7 @@ impl Scanner {
             '&' => {
                 // consume &
                 self.advance();
-                if '|' == self.get_char() {
+                if '&' == self.get_char() {
                    // consume &
                    self.advance();
                    return Ok(Token::And);
@@ -190,6 +193,9 @@ impl Scanner {
     fn skip_whitespace(&mut self) {
 
         while self.get_char().is_whitespace() {
+            if self.get_char() == '\n' {
+                self.src_line += 1;
+            }
             self.advance();
         }
     }

@@ -1,10 +1,12 @@
-/*
+/* 
+LANGUAGE GRAMMAR
+SOURCE: http://canonical.org/~kragen/memory-models/
 program ::= def*
 def ::= "def" name "(" args ")" block
 args ::= "" | name "," args
 block ::= "{" statement* "}"
 statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
-nest ::= "if" exp block | "if" exp block "else" block | "while" exp block
+nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
 exp ::= name | num | exp op exp | name "(" exps ")" | "(" exp ")" | unop exp
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
@@ -14,6 +16,8 @@ comparison ::= "==" | "<" | ">" | "<=" | ">=" | "!="
 */
 
 
+
+#[derive(Debug, Clone)]
 pub struct Program {
     pub defs: Vec<Def>
 }
@@ -114,7 +118,7 @@ pub struct Op {
     pub op: OpKind
 }
 
-// logical ::= "||" | "&&" | "&" | "|" | "^" | "<<" | ">>"
+// logical ::= "||" | "&&"
 #[derive(Debug, Clone)]
 pub enum LogicalKind {
     Or,

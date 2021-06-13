@@ -29,7 +29,7 @@ pub enum InterpreterError {
 
 
 // Interpreter evaluates a program Symbol (AST).
-struct Interpreter {
+pub struct Interpreter {
     program: Program,
     defs: Defs,
 }
@@ -106,7 +106,7 @@ impl Interpreter {
         for statement in &block.statements {
             let res = self.eval_statement(statement, env)?;
             // if the statment is a return statment, stop evaluating and return as block result
-            if let StatementKind::Return(_) = statement.statement {
+            if res.is_some() {
                 return Ok(res);
             }
         }
@@ -125,9 +125,16 @@ impl Interpreter {
                 // binds evalute to nothing
                 Ok(None)
             },
-            StatementKind::Exp(exp) => Ok(Some(self.eval_exp(&exp, env)?)),
+            StatementKind::Exp(exp) => {
+                // statments composed of a single expression print but evaluate to nothing.
+                // e.g. 5+5;
+                // this will print "5" but the statement has no value
+
+
+                println!("{}", self.eval_exp(&exp, env)?);
+                Ok(None)
+            },
             StatementKind::Nest(nest) => {
-                // evaluate the nest
                 self.eval_nest(nest, env) 
             },
         }

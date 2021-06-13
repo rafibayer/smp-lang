@@ -1,23 +1,17 @@
 
-use simple_lang::{scanner::Scanner, tokens::Token};
+use std::error::Error;
+use std::fs;
+
+use simple_lang::ast;
+use simple_lang::{scanner::Scanner};
+use simple_lang::interpreter::Interpreter;
 
 
-fn main() {
+fn main(){
+    let file = fs::read_to_string("program.smp").unwrap();
+    let mut scanner = Scanner::new(file).unwrap();
+    let program = ast::generate_ast(&mut scanner).unwrap();
+    let interpreter = Interpreter::new(program);
 
-    // repl loop
-    loop {
-        let mut line = String::new();
-        std::io::stdin().read_line(&mut line)
-            .expect("Failed to read line");
-
-        let scan = Scanner::new(line).unwrap();
-
-        for token in scan.into_iter() {
-            print!("{:?} ", token.unwrap());
-        }
-        println!();
-    }
-    
-
-    
+    println!("Main: {:?}", interpreter.execute().unwrap());
 }

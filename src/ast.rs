@@ -1,11 +1,18 @@
+use std::env::var;
+
 use crate::interpreter::symbols::*;
 use crate::scanner::{Scanner, ScannerError};
 use crate::tokens::{Token, TokenDiscriminants};
 
+use self::operator::lookup_infix;
+
 mod operator;
+#[cfg(test)]
+mod test;
 
 const DISCRIMINANT_ERROR: &str = "Enum variant did not match discriminant";
 
+#[derive(Debug)]
 pub enum ASTError {
     ScannerError(ScannerError),
     UnexpectedToken(Token),
@@ -54,7 +61,7 @@ fn generate_def(scanner: &mut Scanner) -> Result<Def, ASTError> {
 
 fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
     let mut names = Vec::new();
-    while !variant_equal(&scanner.peek_next(), TokenDiscriminants::LParen) {
+    while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
         // consume name
         let arg = match consume_token(scanner, TokenDiscriminants::Name)? {
             Token::Name(value) => value,
@@ -62,10 +69,19 @@ fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
         };
         names.push(arg);
 
-        // consume ,
-        consume_token(scanner, TokenDiscriminants::Comma)?;
-    }
 
+        let next = scanner.peek_next();
+        if variant_equal(&next, TokenDiscriminants::Comma) {
+            // consume ,
+            consume_token(scanner, TokenDiscriminants::Comma)?;
+        } else if !variant_equal(&next, TokenDiscriminants::RParen) {
+            // if we see no more commas after an arg, we must be at the last arg
+            // therefore, ) must be next (however we leave consuming it to the caller)
+            return Err(ASTError::UnexpectedToken(next));
+        }
+
+        
+    }
     Ok(Args { names })
 }
 
@@ -133,94 +149,28 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
     Ok(Statement { statement })
 }
 
-
-
 // exp ::= name | num | exp op exp | exp "(" exps ")" | "(" exp ")" | unop exp
 fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
-    let first = scanner.get_next()?;
-    let exp = match first {
+    let exp = match scanner.next_token()? {
         // let all name-first expressions get handled by special case
         Token::Name(name) => {
             return generate_exp_name(scanner, name);
         }
         // num and infix cases
         Token::Num(value) => {
+
             match scanner.peek_next() {
-                // just a number followed by ;
-                Token::SColon => ExpKind::Num(value),
+                // just a number followed by ; or , or )
+                Token::SColon | Token::Comma | Token::RParen => ExpKind::Num(value),
                 // Infix operators
-                Token::Plus => {
-                    generate_infix(ExpKind::Num(value), operator::lookup_infix(scanner.peek_next())?, generate_exp(scanner)?)?
-                }
-                Token::Mul => {
-                    generate_infix(ExpKind::Num(value), OpKind::Mul, generate_exp(scanner)?)?
-                }
-                Token::Div => {
-                    generate_infix(ExpKind::Num(value), OpKind::Div, generate_exp(scanner)?)?
-                }
-                Token::Mod => {
-                    generate_infix(ExpKind::Num(value), OpKind::Mod, generate_exp(scanner)?)?
-                }
-                // logical operators
-                Token::Or => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Logical(Logical {
-                        logical: LogicalKind::Or,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::And => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Logical(Logical {
-                        logical: LogicalKind::And,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                // comparison operators
-                Token::Equals => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::Equals,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::Less => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::Less,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::More => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::More,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::LessEqual => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::LessEqual,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::MoreEqual => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::MoreEqual,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                Token::NotEqual => generate_infix(
-                    ExpKind::Num(value),
-                    OpKind::Comparison(Comparison {
-                        comparison: ComparisonKind::NotEqual,
-                    }),
-                    generate_exp(scanner)?,
-                )?,
-                other => {
-                    return Err(ASTError::UnexpectedToken(other))
+                _ => {
+                    // generate infix: num op exp
+                    // operator is next, and is consumed by next_token, leaving generate_exp to get exp
+                    generate_infix(
+                        ExpKind::Num(value),
+                        operator::lookup_infix(scanner.next_token()?)?,
+                        generate_exp(scanner)?,
+                    )?
                 }
             }
         }
@@ -230,24 +180,58 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
             let exp = generate_exp(scanner)?;
             // consume )
             consume_token(scanner, TokenDiscriminants::RParen)?;
-            ExpKind::Paren(exp)
+            
+            // either returns just expression, or full expression with next
+            // infix operator
+            return generate_exp_preexp(scanner, exp)
         }
         // unop exp
         Token::Minus => {
             let exp = generate_exp(scanner)?;
-            ExpKind::Unary(Unop{unop: UnopKind::Neg}, exp)
+            ExpKind::Unary(
+                Unop {
+                    unop: UnopKind::Neg,
+                },
+                exp,
+            )
         }
         Token::Not => {
             let exp = generate_exp(scanner)?;
-            ExpKind::Unary(Unop{unop: UnopKind::Not}, exp)
+            ExpKind::Unary(
+                Unop {
+                    unop: UnopKind::Not,
+                },
+                exp,
+            )
         }
         // illegal
         other => {
-            return Err(ASTError::UnexpectedToken(other))
+            dbg!();
+            return Err(ASTError::UnexpectedToken(other));
         }
     };
 
     Ok(Exp { exp: Box::new(exp) })
+}
+
+// either returns just expression, or full expression with next
+// infix operator.
+// 1+1 => Infix(1, +, 1)
+// (1) + 1 => Infix((1), +, 1)
+// this is to help with cases where a statment contains a paren exp followed by an operator.
+fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTError> {
+    match scanner.peek_next() {
+        // lone expression
+        Token::SColon => Ok(preexp),
+        // block start
+        Token::LCurly => Ok(preexp),
+        // else must be infix
+        _ => Ok(Exp {
+            // consumes infix
+            exp: Box::new(ExpKind::Infix(preexp, Op {op: lookup_infix(scanner.next_token()?)?}, generate_exp(scanner)?))
+        })
+    }
+
 }
 
 // special case of generate exp, beggining with a passed name
@@ -256,7 +240,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
 fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTError> {
     let exp = match scanner.peek_next() {
         // name on it's own
-        Token::SColon => ExpKind::Name(name),
+        Token::SColon | Token::Comma | Token::RParen => ExpKind::Name(name),
         // name followed by parens (function call)
         Token::LParen => {
             // consume (
@@ -264,25 +248,36 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
             // compute function args
             let mut exps = Vec::new();
             while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
-                exps.push(generate_exp(scanner)?);
+                let param = generate_exp(scanner)?;
+                exps.push(param);
+                if variant_equal(&scanner.peek_next(), TokenDiscriminants::Comma) {
+                    consume_token(scanner, TokenDiscriminants::Comma)?;
+                }
             }
 
             // consume )
             consume_token(scanner, TokenDiscriminants::RParen)?;
-            ExpKind::Call(name, Exps {exps})
-        },
-        // infix starting with name
-        other => {
-            ExpKind::Infix()
+            ExpKind::Call(name, Exps { exps })
         }
-    }
+        // infix starting with name
+        _ => {
+            // generate infix: name op exp
+            // operator is next, and is consumed by next_token, leaving generate_exp to get exp
+            generate_infix(
+                ExpKind::Name(name),
+                operator::lookup_infix(scanner.next_token()?)?,
+                generate_exp(scanner)?,
+            )?
+        }
+    };
 
-    Ok(Exp {exp: Box::new(exp)})
+    Ok(Exp { exp: Box::new(exp) })
 }
 
+// generate Nest for If, If/Else, and While
 fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
     // consume If or While
-    let next = scanner.get_next()?;
+    let next = scanner.next_token()?;
     let nest = match next {
         Token::If => {
             // consume cond
@@ -308,7 +303,11 @@ fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
             let block = generate_block(scanner)?;
             NestKind::While { cond, block }
         }
-        _ => return Err(ASTError::UnexpectedToken(next)),
+        _ => {
+            dbg!();
+
+            return Err(ASTError::UnexpectedToken(next));
+        }
     };
 
     Ok(Nest { nest })
@@ -318,15 +317,16 @@ fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<ExpKind, ASTErro
     Ok(ExpKind::Infix(Exp { exp: Box::new(lhs) }, Op { op }, rhs))
 }
 
-// https://users.rust-lang.org/t/comparing-enums-by-variants/22546/4
 fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<Token, ASTError> {
     let next = scanner.next_token()?;
     if variant_equal(&next, variant) {
         return Ok(next);
     }
+    dbg!("expected: {}", variant);
     Err(ASTError::UnexpectedToken(next))
 }
 
+// https://users.rust-lang.org/t/comparing-enums-by-variants/22546/4
 fn variant_equal(token: &Token, variant: TokenDiscriminants) -> bool {
     let disc: TokenDiscriminants = token.clone().into();
     disc == variant

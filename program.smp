@@ -1,0 +1,16 @@
+def printRange(from, to) {
+    while (from < to) {
+        from;
+        from := from + 1;
+    }
+
+    return 0;
+}
+
+def printTo(to) {
+    return printRange(0, to);
+}
+
+def main() {
+    res := printRange(1, 10);
+}
