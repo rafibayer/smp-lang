@@ -1,11 +1,9 @@
-
 use crate::interpreter::symbols::*;
 use crate::scanner::{Scanner, ScannerError};
 use crate::tokens::{Token, TokenDiscriminants};
 
-use self::operator::lookup_infix;
-
 mod operator;
+
 #[cfg(test)]
 mod test;
 
@@ -68,7 +66,6 @@ fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
         };
         names.push(arg);
 
-
         let next = scanner.peek_next();
         if variant_equal(&next, TokenDiscriminants::Comma) {
             // consume ,
@@ -78,8 +75,6 @@ fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
             // therefore, ) must be next (however we leave consuming it to the caller)
             return Err(ASTError::UnexpectedToken(next));
         }
-
-        
     }
     Ok(Args { names })
 }
@@ -150,6 +145,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
 
 // exp ::= name | num | exp op exp | exp "(" exps ")" | "(" exp ")" | unop exp
 fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
+    
     let exp = match scanner.next_token()? {
         // let all name-first expressions get handled by special case
         Token::Name(name) => {
@@ -157,7 +153,6 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
         }
         // num and infix cases
         Token::Num(value) => {
-
             match scanner.peek_next() {
                 // just a number followed by ; or , or )
                 Token::SColon | Token::Comma | Token::RParen => ExpKind::Num(value),
@@ -179,11 +174,12 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
             let exp = generate_exp(scanner)?;
             // consume )
             consume_token(scanner, TokenDiscriminants::RParen)?;
-            
+
             // either returns just expression, or full expression with next
             // infix operator
-            return generate_exp_preexp(scanner, exp)
+            return generate_exp_preexp(scanner, exp);
         }
+   
         // unop exp
         Token::Minus => {
             let exp = generate_exp(scanner)?;
@@ -224,13 +220,20 @@ fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTErr
         Token::SColon => Ok(preexp),
         // block start
         Token::LCurly => Ok(preexp),
+        // part of a nested paren
+        Token::RParen => Ok(preexp),
         // else must be infix
         _ => Ok(Exp {
             // consumes infix
-            exp: Box::new(ExpKind::Infix(preexp, Op {op: lookup_infix(scanner.next_token()?)?}, generate_exp(scanner)?))
-        })
+            exp: Box::new(ExpKind::Infix(
+                preexp,
+                Op {
+                    op: operator::lookup_infix(scanner.next_token()?)?,
+                },
+                generate_exp(scanner)?,
+            )),
+        }),
     }
-
 }
 
 // special case of generate exp, beggining with a passed name

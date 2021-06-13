@@ -50,3 +50,17 @@ fn test_multiarg() {
     let interpreter = smp::interpreter::Interpreter::new(program);
     assert_eq!(interpreter.execute().unwrap(), Some(120f64));
 }
+
+#[test]
+fn test_nested_parens() {
+    let program = String::from("
+
+    def main() {
+        return ((1));
+    }
+    ");
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(1f64));
+}
