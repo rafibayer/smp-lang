@@ -56,6 +56,7 @@ fn generate_def(scanner: &mut Scanner) -> Result<Def, ASTError> {
     Ok(Def { name, args, block })
 }
 
+// Generates AST for function def args
 fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
     let mut names = Vec::new();
     while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
@@ -79,6 +80,7 @@ fn generate_args(scanner: &mut Scanner) -> Result<Args, ASTError> {
     Ok(Args { names })
 }
 
+// Generates AST for a block
 fn generate_block(scanner: &mut Scanner) -> Result<Block, ASTError> {
     // consume {
     consume_token(scanner, TokenDiscriminants::LCurly)?;
@@ -94,7 +96,7 @@ fn generate_block(scanner: &mut Scanner) -> Result<Block, ASTError> {
     Ok(Block { statements })
 }
 
-// statement ::= "return" exp ";" | name ":=" exp ";" | exp ";" | nest
+// Generates AST for statment
 fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
     let statement = match scanner.peek_next() {
         Token::Return => {
@@ -160,7 +162,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
     Ok(Statement { statement })
 }
 
-// exp ::= name | num | exp op exp | exp "(" exps ")" | "(" exp ")" | unop exp
+// Generates AST for exp
 fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
     
     let exp = match scanner.next_token()? {
@@ -313,7 +315,7 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
     Ok(Exp { exp: Box::new(exp) })
 }
 
-// generate Nest for If, If/Else, and While
+// generate AST for Nest: If, If/Else, and While
 fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
     // consume If or While
     let next = scanner.next_token()?;
@@ -352,10 +354,13 @@ fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
     Ok(Nest { nest })
 }
 
+// Generates AST for Infix expression
 fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<ExpKind, ASTError> {
     Ok(ExpKind::Infix(Exp { exp: Box::new(lhs) }, Op { op }, rhs))
 }
 
+// Consumes a token from the scanner specified by variant.
+// Returns an ASTError if the next token was not the expected token. 
 fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<Token, ASTError> {
     let next = scanner.next_token()?;
     if variant_equal(&next, variant) {
@@ -367,6 +372,7 @@ fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<T
     Err(ASTError::UnexpectedToken(next))
 }
 
+// Returns true if the given token matches the given variant
 // https://users.rust-lang.org/t/comparing-enums-by-variants/22546/4
 fn variant_equal(token: &Token, variant: TokenDiscriminants) -> bool {
     let disc: TokenDiscriminants = token.clone().into();

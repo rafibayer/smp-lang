@@ -1,6 +1,7 @@
 use super::InterpreterError;
 use std::{collections::HashMap, fmt::Display};
 
+// Value represents a value in an smp program.
 #[derive(Debug, EnumDiscriminants, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     Num(f64),
@@ -8,6 +9,7 @@ pub enum Value {
 }
 
 impl Value {
+    // tries to convert a Value into an f64
     pub fn into_f64(self) -> Result<f64, InterpreterError> {
         Ok(match self {
             Value::Num(val) => val,
@@ -20,6 +22,7 @@ impl Value {
         })
     }
 
+    // tries to convert a Value into an Vec<f64>
     pub fn into_vec(self) -> Result<Vec<f64>, InterpreterError> {
         Ok(match self {
             Value::Array(val) => val,
@@ -33,18 +36,21 @@ impl Value {
     }
 }
 
+// Creates a Value from an f64
 impl From<f64> for Value {
     fn from(val: f64) -> Self {
         Value::Num(val)
     }
 }
 
+// Creates a Value from a Vec<f64>
 impl From<Vec<f64>> for Value {
     fn from(val: Vec<f64>) -> Self {
         Value::Array(val)
     }
 }
 
+// Display for Value, used for program output
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -54,6 +60,7 @@ impl Display for Value {
     }
 }
 
+// Environment holds variable bindings
 #[derive(Debug)]
 pub struct Environment {
     vars: HashMap<String, Value>,
@@ -66,10 +73,12 @@ impl Environment {
         }
     }
 
+    // Binds a value to a name
     pub fn bind_var(&mut self, name: String, value: Value) {
         self.vars.insert(name, value);
     }
 
+    // Retrieves the value bound to a name
     pub fn get_var(&self, name: &str) -> Result<Value, InterpreterError> {
         match self.vars.get(name) {
             Some(val) => Ok(val.clone()),

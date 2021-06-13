@@ -75,9 +75,9 @@ pub struct Nest {
 pub enum ExpKind {
     Name(String),
     Num(f64),
-    ArrayInit{size: Exp}, // "[" exp "]" 
+    ArrayInit{size: Exp},
     Infix(Exp, Op, Exp),
-    ArrayAccess{name: String, index: Exp}, // name "[" exp "]"
+    ArrayAccess{name: String, index: Exp},
     Call(String, Exps),
     Paren(Exp),
     Unary(Unop, Exp),
@@ -99,7 +99,6 @@ pub struct Exps {
 pub enum UnopKind {
     Not,
     Neg,
-    // BitNot,
 }
 
 #[derive(Debug, Clone)]

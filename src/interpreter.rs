@@ -10,13 +10,14 @@ pub use environment::{Environment, Value, ValueDiscriminants};
 use std::{rc::Rc, usize};
 use symbols::*;
 
+// main function name
 const MAIN: &str = "main";
+// Approximation for 0
 const EPSILON: f64 = 0.0000001;
 
 #[derive(Debug)]
 pub enum InterpreterError {
     UnboundVar(String),
-    UnboundArr(String),
     UnboundFunc(String),
     TypeError {
         found_type: ValueDiscriminants,
@@ -38,6 +39,7 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
+    // Creates an interpreter for a given Program AST
     pub fn new(program: Program) -> Interpreter {
         Interpreter {
             program,
@@ -45,6 +47,7 @@ impl Interpreter {
         }
     }
 
+    // Executes this interpreters Program
     pub fn execute(mut self) -> Result<Option<Value>, InterpreterError> {
         // evaluate defs in program
         let mut env = Environment::new();
@@ -56,12 +59,14 @@ impl Interpreter {
         self.eval_call(&MAIN.to_string(), &Exps { exps: Vec::new() }, &mut env)
     }
 
+    // Evaluates all the top-level defs in the program
     fn eval_program(&mut self) {
         for def in &self.program.defs {
             self.defs.bind_func(def.name.clone(), Rc::new(def.clone()));
         }
     }
 
+    // Evaluates a function call to name with given actual args (exps) in the given environment
     fn eval_call(
         &self,
         name: &str,
@@ -95,6 +100,7 @@ impl Interpreter {
         self.eval_block(&func.block, &mut func_env)
     }
 
+    // Evaluates the given expression in the given Environment
     fn eval_exp(&self, exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
         match &*exp.exp {
             ExpKind::Name(name) => env.get_var(&name),
@@ -117,6 +123,7 @@ impl Interpreter {
         }
     }
 
+    // Evaluates the given block in the given Environment
     fn eval_block(
         &self,
         block: &Block,
@@ -134,6 +141,7 @@ impl Interpreter {
         Ok(None)
     }
 
+    // Evaluates the given statement in the given environment
     fn eval_statement(
         &self,
         statement: &Statement,
@@ -173,6 +181,8 @@ impl Interpreter {
         }
     }
 
+    // Evaluates an expression of the form: lhs op rhs
+    // Example: 2 + 7
     fn eval_infix(
         &self,
         lhs: &Exp,
@@ -204,6 +214,8 @@ impl Interpreter {
         }
     }
 
+    // Evaluates an expression of the form: unop exp
+    // Example: -5
     fn eval_unop(
         &self,
         unop: &Unop,
@@ -220,6 +232,8 @@ impl Interpreter {
         }
     }
 
+    // Evaluates an expression of the form: lhs logical rhs
+    // Example: a && b
     fn eval_logical(
         &self,
         lhs: &Exp,
@@ -236,6 +250,8 @@ impl Interpreter {
         }
     }
 
+    // Evaluates an expression of the form: lhs comparison rhs
+    // Example: 5 >= 3
     fn eval_comparison(
         &self,
         lhs: &Exp,
@@ -265,14 +281,18 @@ impl Interpreter {
         }
     }
 
+    // evaluates the truthiness of a f64 value
     fn truthy(value: f64) -> bool {
         value.abs() > EPSILON
     }
 
+    // converts a boolean to a float
     fn bool_to_float(bool: bool) -> f64 {
         (bool as u32) as f64
     }
 
+    // Evaluates a nested expression
+    // Example: if (5 > a) { return 1; }
     fn eval_nest(
         &self,
         nest: &Nest,
@@ -354,6 +374,7 @@ impl Interpreter {
             }
         }
     }
+    
     // Attempts to get the value of an expression that may not return a value.
     // if no value can be unwrapped, returns a ValuelessExpression interpreter error
     fn get_expression_result_value(
