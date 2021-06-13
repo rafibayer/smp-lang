@@ -22,6 +22,7 @@ fn test_recursive() {
             return 1;
         }
 
+        # n! = n * (n-1)!
         return n * fact(n - 1);
     }
     def main() {
@@ -37,6 +38,7 @@ fn test_recursive() {
 #[test]
 fn test_multiarg() {
     let program = String::from("
+    # returns the product of the parameters 
     def func(a, b, c, d, e) {
         return a*b*c*d*e;
 
@@ -77,8 +79,8 @@ fn test_arr() {
             arr[i] := i;
             i := i + 1;
         }
-        arr[4];
-        return arr;
+        arr[4]; # outputs the 5th element of arr
+        return arr; # returns the entire array
     }
     ");
     let mut s = smp::scanner::Scanner::new(program).unwrap();
@@ -92,9 +94,9 @@ fn test_reassign() {
     let program = String::from("
 
     def main() {
-        a := [10];
-        a := 5;
-        return a;
+        a := [10]; # assign a to an array
+        a := 5; # re-assign a to a num
+        return a; # we should get back the num
     }
     ");
     let mut s = smp::scanner::Scanner::new(program).unwrap();
@@ -107,6 +109,7 @@ fn test_reassign() {
 fn test_multicall() {
     let program = String::from("
 
+    # returns a
     def reta(a) {
         return a;
     } 
@@ -121,4 +124,22 @@ fn test_multicall() {
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
     assert_eq!(interpreter.execute().unwrap(), Some(Value::from(3f64)));
+}
+
+#[test]
+fn test_comments() {
+    let program = String::from("
+
+    # comment
+    def main() { # the main function is called main() {}
+        # returns 1;
+        return 1; # we will now return !!
+        # 1 was returned
+    }
+    # the program is over
+    # comments without newline");
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(1f64)));
 }

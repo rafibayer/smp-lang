@@ -84,6 +84,18 @@ def main() {
 }
 ```
 
+### Comments
+Comments are preceded by a `#`, the program will ignore anything after that until the end of the line.
+```
+# comment
+def main() { # the main function is called main()!
+    # returns 1; very cool!
+    return 1; # we will now return 1!!
+    # 1 was returned
+}
+# the program is over
+```
+
 ## Should You Use This Language?
 No! :)  
 This was purely for fun and for learning. This language is most certainly full of bugs, and the code is not very extensible in its current state. However, I hope that anyone reading this can learn from my experiences and mistakes while implementing their own interpreters in Rust or any other language. 

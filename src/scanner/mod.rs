@@ -195,6 +195,11 @@ impl Scanner {
             'a'..='z' | 'A'..='Z' => self.parse_word(),
             // eof
             EOF_CHAR => Ok(Token::Eof),
+            // comments
+            '#' => {
+                self.skip_line();
+                self.get_next()
+            }
             // unknown character
             unknown => Err(ScannerError::UnexpectedToken(unknown.to_string())),
         }
@@ -222,6 +227,18 @@ impl Scanner {
                 self.src_line += 1;
             }
             self.advance();
+        }
+    }
+
+    // advances until next line, or EOF
+    fn skip_line(&mut self) {
+        while self.get_char() != '\n' && self.get_char() != EOF_CHAR {
+            self.advance();
+        }
+
+        if self.get_char() == '\n' {
+            self.advance();
+            self.src_line += 1;
         }
     }
 
