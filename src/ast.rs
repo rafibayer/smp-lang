@@ -125,8 +125,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     consume_token(scanner, TokenDiscriminants::SColon)?;
                     StatementKind::Assign { name, exp }
                 }
-                // array assingment
-                // Todo: we also need to handle array-access here.
+                // array assingment and access
                 Token::LBracket => {
                     // consume [
                     consume_token(scanner, TokenDiscriminants::LBracket)?;
@@ -134,13 +133,27 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     let index_exp = generate_exp(scanner)?;
                     // consume ]
                     consume_token(scanner, TokenDiscriminants::RBracket)?;
-                    // consume :=
-                    consume_token(scanner, TokenDiscriminants::Assign)?;
-                    // consume value exp
-                    let value = generate_exp(scanner)?;
-                    // consume ;
-                    consume_token(scanner, TokenDiscriminants::SColon)?;
-                    StatementKind::ArrayAssign { name, index_exp, value }
+                    
+                    // ArrayAssign
+                    if variant_equal(&scanner.peek_next(), TokenDiscriminants::Assign) {
+                        // consume :=
+                        consume_token(scanner, TokenDiscriminants::Assign)?;
+                        // consume value exp
+                        let value = generate_exp(scanner)?;
+                        // consume ;
+                        consume_token(scanner, TokenDiscriminants::SColon)?;
+                        StatementKind::ArrayAssign { name, index_exp, value }
+                    // Array Access
+                    } else {
+                        // consume array access
+                        let preexp = Exp {exp: Box::new(ExpKind::ArrayAccess{ name: name, index: index_exp })};
+                        // consume rest of expression
+                        let exp = generate_exp_preexp(scanner, preexp)?;
+                        // consume ;
+                        consume_token(scanner, TokenDiscriminants::SColon)?;
+                        StatementKind::Exp(exp)
+                    }
+                    
                 }
                 // otherwise, just an exp starting with a name (e.i usage or fn call)
                 _ => {

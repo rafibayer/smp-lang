@@ -1,5 +1,10 @@
-
 def main() {
-    a := [5];
-    a[4] + 1;
+    arr := [5];
+    i := 0;
+    while (i < 5) {
+        arr[i] := i;
+        i := i + 1;
+    }
+    arr[4];
+    return arr;
 }

@@ -79,32 +79,9 @@ def main() {
         arr[i] := i;
         i := i + 1;
     }
-    (arr[4]);
+    arr[4];
     return arr;
 }
-```
-
-## Known bugs
-Currently there is unresolved ambiguity between array assigment expressions: 
-```
-a[4] := 123;
-```
-and array access expressions: 
-```
-a[4];
-``` 
-The second example will currently cause an error.
-As a temporary workaround, you can wrap array access expressions in parens:  
-```
-(a[4]);
-```
-This only affects expressions where the array access is first. For example, this causes no error:
-```
-1 + a[4];
-```
-But this does:
-```
-a[4] + 1;
 ```
 
 ## Should You Use This Language?

@@ -77,7 +77,7 @@ fn test_arr() {
             arr[i] := i;
             i := i + 1;
         }
-        (arr[4]);
+        arr[4];
         return arr;
     }
     ");
@@ -85,4 +85,40 @@ fn test_arr() {
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
     assert_eq!(interpreter.execute().unwrap(), Some(Value::from(vec![0f64, 1f64, 2f64, 3f64, 4f64])));
+}
+
+#[test]
+fn test_reassign() {
+    let program = String::from("
+
+    def main() {
+        a := [10];
+        a := 5;
+        return a;
+    }
+    ");
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(5f64)));
+}
+
+#[test]
+fn test_multicall() {
+    let program = String::from("
+
+    def reta(a) {
+        return a;
+    } 
+
+    def main() {
+        first := reta(1);
+        second := reta(2);
+        return first + second;
+    }
+    ");
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(3f64)));
 }
