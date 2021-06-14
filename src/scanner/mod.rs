@@ -294,6 +294,7 @@ impl Scanner {
             "sqrt" => Some(Token::Sqrt),
             "len" => Some(Token::Len),
             "round" => Some(Token::Round),
+            "input" => Some(Token::Input),
             _ => None
         }
     }

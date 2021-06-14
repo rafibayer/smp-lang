@@ -68,5 +68,5 @@ pub enum Token {
     Sqrt, // sqrt
     Len, // len 
     Round, // round
-
+    Input, // input
 }

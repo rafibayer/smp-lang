@@ -31,5 +31,6 @@ pub fn lookup_infix(token: Token) -> Result<OpKind, ASTError> {
         Token::NotEqual => OpKind::Comparison(Comparison{comparison: ComparisonKind::NotEqual}),
 
         other=> return Err(ASTError::InvalidOperator(other))
+        
     })
 }

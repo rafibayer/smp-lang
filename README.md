@@ -86,7 +86,7 @@ def main() {
 ```
 
 ### Built-In Functions
-Supported functions: `sqrt`, `len`, `round`
+Supported functions: `sqrt`, `len`, `round`, `input`
 ```
 def seq(arr) {
     i := 0;
@@ -98,7 +98,7 @@ def seq(arr) {
 }
 
 def main() {
-    arr := seq([6]);
+    arr := seq([round(input())]);
     return round(sqrt(arr[len(arr) - 1]));
 }
 ```

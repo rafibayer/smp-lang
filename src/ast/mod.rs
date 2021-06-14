@@ -116,7 +116,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
             // consume name
             consume_token(scanner, TokenDiscriminants::Name)?;
             match scanner.peek_next() {
-                // statment is an assigment
+                // variable assignment
                 Token::Assign => {
                     // consume :=
                     consume_token(scanner, TokenDiscriminants::Assign)?;
@@ -125,7 +125,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     consume_token(scanner, TokenDiscriminants::SColon)?;
                     StatementKind::Assign { name, exp }
                 }
-                // array assingment and access
+                // arrays
                 Token::LBracket => {
                     // consume [
                     consume_token(scanner, TokenDiscriminants::LBracket)?;
@@ -192,44 +192,37 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
         }
         // builtins
         Token::Sqrt => {
-            // consume (
-            consume_token(scanner, TokenDiscriminants::LParen)?;
-            // consume actual
             let preexp = Exp {
                 exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Sqrt(generate_exp(scanner)?),
+                    builtin: BuiltInKind::Sqrt(generate_exps(scanner)?),
                 })),
             };
-            // consume )
-            consume_token(scanner, TokenDiscriminants::RParen)?;
             return generate_exp_preexp(scanner, preexp);
         }
         Token::Len => {
-            // consume (
-            consume_token(scanner, TokenDiscriminants::LParen)?;
-            // consume actual
             let preexp = Exp {
                 exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Len(generate_exp(scanner)?),
+                    builtin: BuiltInKind::Len(generate_exps(scanner)?),
                 })),
             };
-            // consume )
-            consume_token(scanner, TokenDiscriminants::RParen)?;
             return generate_exp_preexp(scanner, preexp);
         },
         Token::Round => {
-            // consume (
-            consume_token(scanner, TokenDiscriminants::LParen)?;
-            // consume actual
             let preexp = Exp {
                 exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Round(generate_exp(scanner)?),
+                    builtin: BuiltInKind::Round(generate_exps(scanner)?),
                 })),
             };
-            // consume )
-            consume_token(scanner, TokenDiscriminants::RParen)?;
             return generate_exp_preexp(scanner, preexp);
         },
+        Token::Input => {
+            let preexp = Exp {
+                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
+                    builtin: BuiltInKind::Input(generate_exps(scanner)?),
+                })),
+            };
+            return generate_exp_preexp(scanner, preexp);
+        }
         // num and infix cases
         Token::Num(value) => {
             match scanner.peek_next() {
@@ -309,11 +302,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
 fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTError> {
     match scanner.peek_next() {
         // lone expression
-        Token::SColon => Ok(preexp),
-        // block start
-        Token::LCurly => Ok(preexp),
-        // part of a nested paren
-        Token::RParen => Ok(preexp),
+        Token::SColon | Token::LCurly | Token::RParen | Token::RBracket => Ok(preexp),
         // else must be infix
         _ => Ok(Exp {
             // consumes infix
@@ -375,6 +364,27 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
     };
 
     Ok(Exp { exp: Box::new(exp) })
+}
+
+
+fn generate_exps(scanner: &mut Scanner) -> Result<Exps, ASTError> {
+
+    let mut exps = Vec::new();
+    // consume (
+    consume_token(scanner, TokenDiscriminants::LParen)?;
+
+    // consume args 
+    while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
+        exps.push(generate_exp(scanner)?);
+        // consume a comma if not the last arg
+        if !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen){ 
+            consume_token(scanner, TokenDiscriminants::Comma)?;
+        }
+    }
+    // consume )
+    consume_token(scanner, TokenDiscriminants::RParen)?;
+
+    Ok(Exps{exps})
 }
 
 // generate AST for Nest: If, If/Else, and While

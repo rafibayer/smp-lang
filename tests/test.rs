@@ -1,13 +1,17 @@
+use std::io::Cursor;
+
 use smp;
 use smp::interpreter::environment::Value;
 
 #[test]
 fn test_simple() {
-    let program = String::from("
+    let program = String::from(
+        "
     def main() {
         return 1;
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -16,7 +20,8 @@ fn test_simple() {
 
 #[test]
 fn test_recursive() {
-    let program = String::from("
+    let program = String::from(
+        "
     def fact(n) {
         if (n == 1) {
             return 1;
@@ -28,16 +33,21 @@ fn test_recursive() {
     def main() {
         return fact(10);
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(3628800f64)));
+    assert_eq!(
+        interpreter.execute().unwrap(),
+        Some(Value::from(3628800f64))
+    );
 }
 
 #[test]
 fn test_multiarg() {
-    let program = String::from("
+    let program = String::from(
+        "
     # returns the product of the parameters 
     def func(a, b, c, d, e) {
         return a*b*c*d*e;
@@ -47,7 +57,8 @@ fn test_multiarg() {
     def main() {
         return func(1, 2, 3, 4, 5);
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -56,12 +67,14 @@ fn test_multiarg() {
 
 #[test]
 fn test_nested_parens() {
-    let program = String::from("
+    let program = String::from(
+        "
 
     def main() {
         return ((1));
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -70,7 +83,8 @@ fn test_nested_parens() {
 
 #[test]
 fn test_arr() {
-    let program = String::from("
+    let program = String::from(
+        "
 
     def main() {
         arr := [5];
@@ -82,23 +96,29 @@ fn test_arr() {
         arr[4]; # outputs the 5th element of arr
         return arr; # returns the entire array
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(vec![0f64, 1f64, 2f64, 3f64, 4f64])));
+    assert_eq!(
+        interpreter.execute().unwrap(),
+        Some(Value::from(vec![0f64, 1f64, 2f64, 3f64, 4f64]))
+    );
 }
 
 #[test]
 fn test_reassign() {
-    let program = String::from("
+    let program = String::from(
+        "
 
     def main() {
         a := [10]; # assign a to an array
         a := 5; # re-assign a to a num
         return a; # we should get back the num
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -107,7 +127,8 @@ fn test_reassign() {
 
 #[test]
 fn test_multicall() {
-    let program = String::from("
+    let program = String::from(
+        "
 
     # returns a
     def reta(a) {
@@ -119,7 +140,8 @@ fn test_multicall() {
         second := reta(2);
         return first + second;
     }
-    ");
+    ",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -128,7 +150,8 @@ fn test_multicall() {
 
 #[test]
 fn test_comments() {
-    let program = String::from("
+    let program = String::from(
+        "
 
     # comment
     def main() { # the main function is called main() {}
@@ -137,7 +160,8 @@ fn test_comments() {
         # 1 was returned
     }
     # the program is over
-    # comments without newline");
+    # comments without newline",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
@@ -146,10 +170,11 @@ fn test_comments() {
 
 #[test]
 fn test_builtin() {
-    let program = String::from("
+    let program = String::from(
+        "
     def seq(arr) {
         i := 0;
-        while (i < (len(arr))) {
+        while (i < len(arr)) {
             arr[i] := i;
             i := i + 1;
         }
@@ -159,9 +184,66 @@ fn test_builtin() {
     def main() {
         arr := seq([6]);
         return round(sqrt(arr[len(arr) - 1]));
-    }");
+    }",
+    );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
     assert_eq!(interpreter.execute().unwrap(), Some(Value::from(2f64)));
+}
+
+#[test]
+fn test_many() {
+    let program = String::from(
+        "
+
+    def seqPlusOne(arr) {
+        i := 0;
+        while (i < len(arr)) {
+            arr[i] := i + 1;
+            i := i + 1;
+        }
+        return arr;
+    }
+
+    def roundSqrtAll(arr) {
+        i := 0;
+        while (i < len(arr)) {
+            arr[i] := round(sqrt(arr[i]));
+            i := i + 1;
+        }
+        return arr;
+    }
+
+   
+    def main() {
+        arr := roundSqrtAll(seqPlusOne([100]));
+        return 2;
+        
+    }",
+    );
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(2f64)));
+}
+
+#[test]
+fn test_input() {
+    let program = String::from(
+        "
+   
+    def main() {
+        return input() + input();
+    }
+    ",
+    );
+
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new_cursored(
+        program,
+        vec![Cursor::new("5".to_string()), Cursor::new("5".to_string())],
+    );
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(10f64)));
 }

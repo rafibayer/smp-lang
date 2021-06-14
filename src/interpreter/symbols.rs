@@ -92,9 +92,10 @@ pub struct Exp {
 
 #[derive(Debug, Clone)]
 pub enum BuiltInKind {
-    Sqrt(Exp),
-    Len(Exp),
-    Round(Exp),
+    Sqrt(Exps),
+    Len(Exps),
+    Round(Exps),
+    Input(Exps),
 }
 
 #[derive(Debug, Clone)]

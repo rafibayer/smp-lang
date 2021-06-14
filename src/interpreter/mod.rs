@@ -1,49 +1,50 @@
 pub mod defs;
 pub mod environment;
 pub mod symbols;
+mod helpers;
+pub mod errors;
+pub mod input;
 
 #[cfg(test)]
 mod test;
 
 use defs::Defs;
 pub use environment::{Environment, Value, ValueDiscriminants};
-use std::{rc::Rc, usize};
+use std::{cell::RefCell, io::{self, stdin, Cursor}, num::ParseFloatError, rc::Rc, usize};
 use symbols::*;
+use errors::*;
+use input::Input;
 
 // main function name
 const MAIN: &str = "main";
 // Approximation for 0
 const EPSILON: f64 = 0.0000001;
 
-#[derive(Debug)]
-pub enum InterpreterError {
-    UnboundVar(String),
-    UnboundFunc(String),
-    TypeError {
-        found_type: ValueDiscriminants,
-        expected_type: ValueDiscriminants,
-    },
-    NoMainDefined,
-    ArgMismatch {
-        got: usize,
-        expected: usize,
-    },
-    ValuelessExpression(Exp),
-    DivideByZero,
-}
+
 
 // Interpreter evaluates a program Symbol (AST).
 pub struct Interpreter {
     program: Program,
     defs: Defs,
+    input: RefCell<input::Input>
 }
 
+
 impl Interpreter {
-    // Creates an interpreter for a given Program AST
+
     pub fn new(program: Program) -> Interpreter {
+        Interpreter {
+            program: program,
+            defs: Defs::new(),
+            input: RefCell::new(Input::from(stdin())),
+        }
+    }
+
+    pub fn new_cursored(program: Program, input: Vec<Cursor<String>>) -> Interpreter {
         Interpreter {
             program,
             defs: Defs::new(),
+            input: RefCell::new(Input::from(input))
         }
     }
 
@@ -107,7 +108,7 @@ impl Interpreter {
             ExpKind::Num(value) => Ok(Value::from(*value)),
             ExpKind::Infix(lhs, op, rhs) => self.eval_infix(lhs, op, rhs, env),
             ExpKind::Call(name, exps) => {
-                Interpreter::get_expression_result_value(&exp, self.eval_call(name, exps, env))
+                helpers::get_expression_result_value(&exp, self.eval_call(name, exps, env))
             }
             ExpKind::BuiltIn(builtin) => {
                 self.eval_builtin(builtin, env)
@@ -132,21 +133,45 @@ impl Interpreter {
         env: &mut Environment,
     ) -> Result<Value, InterpreterError> {
         match &builtin.builtin {
-            BuiltInKind::Sqrt(exp) => {
-                let arg = Value::from(self.eval_exp(&exp, env)?);
+            BuiltInKind::Sqrt(exps) => {
+                if exps.exps.len() != 1 {
+                    return Err(InterpreterError::ArgMismatch{expected: 1, got: exps.exps.len()});
+                }
+                let arg = Value::from(self.eval_exp(&exps.exps[0], env)?);
                 let float = Value::into_f64(arg)?;
                 Ok(Value::from(float.sqrt()))
             },
-            BuiltInKind::Len(exp) => {
-                let arg = Value::from(self.eval_exp(&exp, env)?);
+            BuiltInKind::Len(exps) => {
+                if exps.exps.len() != 1 {
+                    return Err(InterpreterError::ArgMismatch{expected: 1, got: exps.exps.len()});
+                }
+                let arg = Value::from(self.eval_exp(&exps.exps[0], env)?);
                 let arr = Value::into_vec(arg)?; 
                 Ok(Value::from(arr.len() as f64))
             },
-            BuiltInKind::Round(exp) => {
-                let arg = Value::from(self.eval_exp(&exp, env)?);
+            BuiltInKind::Round(exps) => {
+                if exps.exps.len() != 1 {
+                    return Err(InterpreterError::ArgMismatch{expected: 1, got: exps.exps.len()});
+                }
+                let arg = Value::from(self.eval_exp(&exps.exps[0], env)?);
                 let float = Value::into_f64(arg)?;
                 Ok(Value::from(float.round()))
             },
+            BuiltInKind::Input(exps) => {
+                if exps.exps.len() != 0 {
+                    return Err(InterpreterError::ArgMismatch{expected: 0, got: exps.exps.len()});
+                }
+
+                print!("> ");
+                io::Write::flush(&mut io::stdout())?;
+
+                let mut buf = String::new();
+                self.input.borrow_mut().read_line(&mut buf)?;
+
+                let float: f64 = buf.trim().parse()?;
+                Ok(Value::from(float))
+            },  
+            
         }
     }
 
@@ -252,8 +277,8 @@ impl Interpreter {
         let value = Value::into_f64(self.eval_exp(exp, env)?)?;
 
         match unop.unop {
-            UnopKind::Not => Ok(Value::from(Interpreter::bool_to_float(
-                !Interpreter::truthy(value),
+            UnopKind::Not => Ok(Value::from(helpers::bool_to_float(
+                !helpers::truthy(value),
             ))),
             UnopKind::Neg => Ok(Value::from(-value)),
         }
@@ -268,12 +293,12 @@ impl Interpreter {
         rhs: &Exp,
         env: &mut Environment,
     ) -> Result<Value, InterpreterError> {
-        let lhs_val = Interpreter::truthy(Value::into_f64(self.eval_exp(lhs, env)?)?);
-        let rhs_val = Interpreter::truthy(Value::into_f64(self.eval_exp(rhs, env)?)?);
+        let lhs_val = helpers::truthy(Value::into_f64(self.eval_exp(lhs, env)?)?);
+        let rhs_val = helpers::truthy(Value::into_f64(self.eval_exp(rhs, env)?)?);
 
         match logical.logical {
-            LogicalKind::Or => Ok(Value::from(Interpreter::bool_to_float(lhs_val || rhs_val))),
-            LogicalKind::And => Ok(Value::from(Interpreter::bool_to_float(lhs_val && rhs_val))),
+            LogicalKind::Or => Ok(Value::from(helpers::bool_to_float(lhs_val || rhs_val))),
+            LogicalKind::And => Ok(Value::from(helpers::bool_to_float(lhs_val && rhs_val))),
         }
     }
 
@@ -290,33 +315,25 @@ impl Interpreter {
         let rhs_val = Value::into_f64(self.eval_exp(rhs, env)?)?;
 
         match comparison.comparison {
-            ComparisonKind::Equals => Ok(Value::from(Interpreter::bool_to_float(
+            ComparisonKind::Equals => Ok(Value::from(helpers::bool_to_float(
                 (lhs_val - rhs_val).abs() < EPSILON,
             ))),
             // TODO: epsilon checking for comparisons?
-            ComparisonKind::Less => Ok(Value::from(Interpreter::bool_to_float(lhs_val < rhs_val))),
-            ComparisonKind::More => Ok(Value::from(Interpreter::bool_to_float(lhs_val > rhs_val))),
+            ComparisonKind::Less => Ok(Value::from(helpers::bool_to_float(lhs_val < rhs_val))),
+            ComparisonKind::More => Ok(Value::from(helpers::bool_to_float(lhs_val > rhs_val))),
             ComparisonKind::LessEqual => {
-                Ok(Value::from(Interpreter::bool_to_float(lhs_val <= rhs_val)))
+                Ok(Value::from(helpers::bool_to_float(lhs_val <= rhs_val)))
             }
             ComparisonKind::MoreEqual => {
-                Ok(Value::from(Interpreter::bool_to_float(lhs_val >= rhs_val)))
+                Ok(Value::from(helpers::bool_to_float(lhs_val >= rhs_val)))
             }
-            ComparisonKind::NotEqual => Ok(Value::from(Interpreter::bool_to_float(
+            ComparisonKind::NotEqual => Ok(Value::from(helpers::bool_to_float(
                 (lhs_val - rhs_val).abs() > EPSILON,
             ))),
         }
     }
 
-    // evaluates the truthiness of a f64 value
-    fn truthy(value: f64) -> bool {
-        value.abs() > EPSILON
-    }
-
-    // converts a boolean to a float
-    fn bool_to_float(bool: bool) -> f64 {
-        (bool as u32) as f64
-    }
+    
 
     // Evaluates a nested expression
     // Example: if (5 > a) { return 1; }
@@ -328,7 +345,7 @@ impl Interpreter {
         match &nest.nest {
             NestKind::If { cond, then } => {
                 // evaluate truthiness of conditional expression
-                let cond_val = Interpreter::truthy(match self.eval_exp(&cond, env) {
+                let cond_val = helpers::truthy(match self.eval_exp(&cond, env) {
                     Ok(val) => Value::into_f64(val)?,
                     Err(err) => return Err(err),
                 });
@@ -347,7 +364,7 @@ impl Interpreter {
             }
             NestKind::IfElse { cond, then, else_ } => {
                 // evaluate truthiness of conditional expression
-                let cond_val = Interpreter::truthy(match self.eval_exp(&cond, env) {
+                let cond_val = helpers::truthy(match self.eval_exp(&cond, env) {
                     Ok(val) => Value::into_f64(val)?,
                     Err(err) => return Err(err),
                 });
@@ -370,7 +387,7 @@ impl Interpreter {
             }
             NestKind::While { cond, block } => {
                 // evaluate truthiness of conditional expression
-                let mut cond_val = Interpreter::truthy(match self.eval_exp(&cond, env) {
+                let mut cond_val = helpers::truthy(match self.eval_exp(&cond, env) {
                     Ok(val) => Value::into_f64(val)?,
                     Err(err) => return Err(err),
                 });
@@ -391,7 +408,7 @@ impl Interpreter {
                     }
 
                     // update the condition
-                    cond_val = Interpreter::truthy(match self.eval_exp(&cond, env) {
+                    cond_val = helpers::truthy(match self.eval_exp(&cond, env) {
                         Ok(val) => Value::into_f64(val)?,
                         Err(err) => return Err(err),
                     });
@@ -399,18 +416,6 @@ impl Interpreter {
                 // exit loop
                 Ok(None)
             }
-        }
-    }
-    
-    // Attempts to get the value of an expression that may not return a value.
-    // if no value can be unwrapped, returns a ValuelessExpression interpreter error
-    fn get_expression_result_value(
-        exp: &Exp,
-        res: Result<Option<Value>, InterpreterError>,
-    ) -> Result<Value, InterpreterError> {
-        match res? {
-            Some(value) => Ok(value),
-            None => Err(InterpreterError::ValuelessExpression(exp.clone())),
         }
     }
 }
