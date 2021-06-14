@@ -120,6 +120,4 @@ No! :)
 This was purely for fun and for learning. This language is most certainly full of bugs, and the code is not very extensible in its current state. However, I hope that anyone reading this can learn from my experiences and mistakes while implementing their own interpreters in Rust or any other language. 
 
 ## Planned Features
-- Input: Currently all values are hardcoded, I am planning to add a built-in function that can parse a single float from stdin.  
-- More Builtin functions
-- Imports?
+- Imports? Standard Library>

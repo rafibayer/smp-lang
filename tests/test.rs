@@ -218,14 +218,14 @@ fn test_many() {
    
     def main() {
         arr := roundSqrtAll(seqPlusOne([100]));
-        return 2;
+        return arr[len(arr) - 1];
         
     }",
     );
     let mut s = smp::scanner::Scanner::new(program).unwrap();
     let program = smp::ast::generate_ast(&mut s).unwrap();
     let interpreter = smp::interpreter::Interpreter::new(program);
-    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(2f64)));
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(10f64)));
 }
 
 #[test]
