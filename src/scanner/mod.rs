@@ -44,6 +44,7 @@ impl Scanner {
         self.next.clone()
     }
     
+    // gets and consumes the next Token
     pub fn next_token(&mut self) -> Result<Token, ScannerError> {
         let result = self.next.clone();
         self.next = self.get_next()?;
@@ -290,6 +291,9 @@ impl Scanner {
             "if" => Some(Token::If),
             "else" => Some(Token::Else),
             "while" => Some(Token::While),
+            "sqrt" => Some(Token::Sqrt),
+            "len" => Some(Token::Len),
+            "round" => Some(Token::Round),
             _ => None
         }
     }

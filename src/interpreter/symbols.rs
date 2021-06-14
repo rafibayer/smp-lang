@@ -4,10 +4,11 @@ SOURCE: http://canonical.org/~kragen/memory-models/
 program ::= def*
 def ::= "def" name "(" args ")" block
 args ::= "" | name "," args
-block ::= "{" statement* "}"
+block ::= "{" statement* "}" 
 statement ::= "return" exp ";" | name ":=" exp ";" | name "[" exp "]" ":=" exp ";"|  exp ";" | nest
 nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
-exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | "(" exp ")" | unop exp
+exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | builtin | "(" exp ")" | unop exp
+builtin ::= "sqrt" "(" exp ")" | "len" "(" exp ")" | "round" "(" exp ")"
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"
@@ -79,6 +80,7 @@ pub enum ExpKind {
     Infix(Exp, Op, Exp),
     ArrayAccess{name: String, index: Exp},
     Call(String, Exps),
+    BuiltIn(BuiltIn),
     Paren(Exp),
     Unary(Unop, Exp),
 }
@@ -86,6 +88,18 @@ pub enum ExpKind {
 #[derive(Debug, Clone)]
 pub struct Exp {
     pub exp: Box<ExpKind>
+}
+
+#[derive(Debug, Clone)]
+pub enum BuiltInKind {
+    Sqrt(Exp),
+    Len(Exp),
+    Round(Exp),
+}
+
+#[derive(Debug, Clone)]
+pub struct BuiltIn {
+    pub builtin: BuiltInKind
 }
 
 // exps ::= "" | exp "," exps

@@ -109,6 +109,9 @@ impl Interpreter {
             ExpKind::Call(name, exps) => {
                 Interpreter::get_expression_result_value(&exp, self.eval_call(name, exps, env))
             }
+            ExpKind::BuiltIn(builtin) => {
+                self.eval_builtin(builtin, env)
+            }
             ExpKind::Paren(exp) => self.eval_exp(exp, env),
             ExpKind::Unary(op, exp) => self.eval_unop(op, exp, env),
             ExpKind::ArrayInit { size } => {
@@ -120,6 +123,30 @@ impl Interpreter {
                 let i = Value::into_f64(self.eval_exp(index, env)?)?;
                 Ok(Value::from(arr[i as usize]))
             }
+        }
+    }
+
+    fn eval_builtin(
+        &self,
+        builtin: &BuiltIn,
+        env: &mut Environment,
+    ) -> Result<Value, InterpreterError> {
+        match &builtin.builtin {
+            BuiltInKind::Sqrt(exp) => {
+                let arg = Value::from(self.eval_exp(&exp, env)?);
+                let float = Value::into_f64(arg)?;
+                Ok(Value::from(float.sqrt()))
+            },
+            BuiltInKind::Len(exp) => {
+                let arg = Value::from(self.eval_exp(&exp, env)?);
+                let arr = Value::into_vec(arg)?; 
+                Ok(Value::from(arr.len() as f64))
+            },
+            BuiltInKind::Round(exp) => {
+                let arg = Value::from(self.eval_exp(&exp, env)?);
+                let float = Value::into_f64(arg)?;
+                Ok(Value::from(float.round()))
+            },
         }
     }
 

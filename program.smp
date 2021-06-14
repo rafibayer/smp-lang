@@ -1,10 +1,13 @@
-def main() {
-    arr := [5];
+def seq(arr) {
     i := 0;
-    while (i < 5) {
+    while (i < (len(arr))) {
         arr[i] := i;
         i := i + 1;
     }
-    arr[4];
     return arr;
+}
+
+def main() {
+    arr := seq([6]);
+    return round(sqrt(arr[len(arr) - 1]));
 }

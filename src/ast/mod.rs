@@ -133,7 +133,7 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                     let index_exp = generate_exp(scanner)?;
                     // consume ]
                     consume_token(scanner, TokenDiscriminants::RBracket)?;
-                    
+
                     // ArrayAssign
                     if variant_equal(&scanner.peek_next(), TokenDiscriminants::Assign) {
                         // consume :=
@@ -142,18 +142,26 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                         let value = generate_exp(scanner)?;
                         // consume ;
                         consume_token(scanner, TokenDiscriminants::SColon)?;
-                        StatementKind::ArrayAssign { name, index_exp, value }
+                        StatementKind::ArrayAssign {
+                            name,
+                            index_exp,
+                            value,
+                        }
                     // Array Access
                     } else {
                         // consume array access
-                        let preexp = Exp {exp: Box::new(ExpKind::ArrayAccess{ name: name, index: index_exp })};
+                        let preexp = Exp {
+                            exp: Box::new(ExpKind::ArrayAccess {
+                                name: name,
+                                index: index_exp,
+                            }),
+                        };
                         // consume rest of expression
                         let exp = generate_exp_preexp(scanner, preexp)?;
                         // consume ;
                         consume_token(scanner, TokenDiscriminants::SColon)?;
                         StatementKind::Exp(exp)
                     }
-                    
                 }
                 // otherwise, just an exp starting with a name (e.i usage or fn call)
                 _ => {
@@ -177,18 +185,59 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
 
 // Generates AST for exp
 fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
-    
     let exp = match scanner.next_token()? {
         // let all name-first expressions get handled by special case
         Token::Name(name) => {
             return generate_exp_name(scanner, name);
         }
+        // builtins
+        Token::Sqrt => {
+            // consume (
+            consume_token(scanner, TokenDiscriminants::LParen)?;
+            // consume actual
+            let preexp = Exp {
+                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
+                    builtin: BuiltInKind::Sqrt(generate_exp(scanner)?),
+                })),
+            };
+            // consume )
+            consume_token(scanner, TokenDiscriminants::RParen)?;
+            return generate_exp_preexp(scanner, preexp);
+        }
+        Token::Len => {
+            // consume (
+            consume_token(scanner, TokenDiscriminants::LParen)?;
+            // consume actual
+            let preexp = Exp {
+                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
+                    builtin: BuiltInKind::Len(generate_exp(scanner)?),
+                })),
+            };
+            // consume )
+            consume_token(scanner, TokenDiscriminants::RParen)?;
+            return generate_exp_preexp(scanner, preexp);
+        },
+        Token::Round => {
+            // consume (
+            consume_token(scanner, TokenDiscriminants::LParen)?;
+            // consume actual
+            let preexp = Exp {
+                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
+                    builtin: BuiltInKind::Round(generate_exp(scanner)?),
+                })),
+            };
+            // consume )
+            consume_token(scanner, TokenDiscriminants::RParen)?;
+            return generate_exp_preexp(scanner, preexp);
+        },
         // num and infix cases
         Token::Num(value) => {
             match scanner.peek_next() {
                 // just a number followed by ; or , or )
                 // todo, i think if i include curly here, i can ditch parens in nest
-                Token::SColon | Token::Comma | Token::RParen | Token::RBracket => ExpKind::Num(value),
+                Token::SColon | Token::Comma | Token::RParen | Token::RBracket => {
+                    ExpKind::Num(value)
+                }
                 // Infix operators
                 _ => {
                     // generate infix: num op exp
@@ -222,7 +271,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
             // infix operator
             return generate_exp_preexp(scanner, exp);
         }
-   
+
         // unop exp
         Token::Minus => {
             let exp = generate_exp(scanner)?;
@@ -285,7 +334,7 @@ fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTErr
 fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTError> {
     let exp = match scanner.peek_next() {
         // name on it's own
-        Token::SColon | Token::Comma | Token::RParen  | Token::RBracket => ExpKind::Name(name),
+        Token::SColon | Token::Comma | Token::RParen | Token::RBracket => ExpKind::Name(name),
         // name followed by parens (function call)
         Token::LParen => {
             // consume (
@@ -311,7 +360,7 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
             let index = generate_exp(scanner)?;
             // consume ]
             consume_token(scanner, TokenDiscriminants::RBracket)?;
-            ExpKind::ArrayAccess{ name, index }
+            ExpKind::ArrayAccess { name, index }
         }
         // infix starting with name
         _ => {
@@ -373,13 +422,13 @@ fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<ExpKind, ASTErro
 }
 
 // Consumes a token from the scanner specified by variant.
-// Returns an ASTError if the next token was not the expected token. 
+// Returns an ASTError if the next token was not the expected token.
 fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<Token, ASTError> {
     let next = scanner.next_token()?;
     if variant_equal(&next, variant) {
         return Ok(next);
     }
-    // todo: remove 
+    // todo: remove
     let disc: TokenDiscriminants = next.clone().into();
     println!("expected: {:?}, got: {:?}", variant, disc);
     Err(ASTError::UnexpectedToken(next))

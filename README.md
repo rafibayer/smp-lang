@@ -38,6 +38,21 @@ def main() {
 All variables are doubles, or arrays of doubles, however we can perform boolean operations by evaluating the values "truthiness". The truthiness rules are as follows: values within Epsilon (0.0000001) of 0 are considered false, all other values are considered true. 
  
 ## Language Features
+ 
+### Conditionals And Loops
+The following program prints even numbers from 0 to 20
+```
+def main() {
+    i := 0;
+    while (i <= 20) {
+        if ((i % 2) == 0) {
+            i;
+        }
+        i := i + 1;
+    }
+}
+```
+
 ### Recursion
 The following program computes 10!
 ```
@@ -51,20 +66,6 @@ def fact(n) {
  
 def main() {
     return fact(10);
-}
-```
- 
-### Conditionals And Loops
-The following program prints even numbers from 0 to 20
-```
-def main() {
-    i := 0;
-    while (i <= 20) {
-        if ((i % 2) == 0) {
-            i;
-        }
-        i := i + 1;
-    }
 }
 ```
 
@@ -81,6 +82,24 @@ def main() {
     }
     arr[4];
     return arr;
+}
+```
+
+### Built-In Functions
+Supported functions: `sqrt`, `len`, `round`
+```
+def seq(arr) {
+    i := 0;
+    while (i < (len(arr))) {
+        arr[i] := i;
+        i := i + 1;
+    }
+    return arr;
+}
+
+def main() {
+    arr := seq([6]);
+    return round(sqrt(arr[len(arr) - 1]));
 }
 ```
 
@@ -102,3 +121,5 @@ This was purely for fun and for learning. This language is most certainly full o
 
 ## Planned Features
 - Input: Currently all values are hardcoded, I am planning to add a built-in function that can parse a single float from stdin.  
+- More Builtin functions
+- Imports?

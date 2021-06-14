@@ -143,3 +143,25 @@ fn test_comments() {
     let interpreter = smp::interpreter::Interpreter::new(program);
     assert_eq!(interpreter.execute().unwrap(), Some(Value::from(1f64)));
 }
+
+#[test]
+fn test_builtin() {
+    let program = String::from("
+    def seq(arr) {
+        i := 0;
+        while (i < (len(arr))) {
+            arr[i] := i;
+            i := i + 1;
+        }
+        return arr;
+    }
+    
+    def main() {
+        arr := seq([6]);
+        return round(sqrt(arr[len(arr) - 1]));
+    }");
+    let mut s = smp::scanner::Scanner::new(program).unwrap();
+    let program = smp::ast::generate_ast(&mut s).unwrap();
+    let interpreter = smp::interpreter::Interpreter::new(program);
+    assert_eq!(interpreter.execute().unwrap(), Some(Value::from(2f64)));
+}
