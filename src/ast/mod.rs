@@ -2,7 +2,9 @@ use crate::interpreter::symbols::*;
 use crate::scanner::{Scanner, ScannerError};
 use crate::tokens::{Token, TokenDiscriminants};
 
-mod operator;
+use self::lookup::lookup_unop;
+
+mod lookup;
 
 #[cfg(test)]
 mod test;
@@ -14,6 +16,7 @@ pub enum ASTError {
     ScannerError(ScannerError),
     UnexpectedToken(Token),
     InvalidOperator(Token),
+    InvalidBuiltin(Token),
 }
 
 impl From<ScannerError> for ASTError {
@@ -185,51 +188,35 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
 
 // Generates AST for exp
 fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
-    let exp = match scanner.next_token()? {
+    Ok(match scanner.peek_next() {
         // let all name-first expressions get handled by special case
         Token::Name(name) => {
+            // consume name
+            consume_token(scanner, TokenDiscriminants::Name)?;
             return generate_exp_name(scanner, name);
         }
         // builtins
-        Token::Sqrt => {
+        Token::Sqrt | Token::Len | Token::Round | Token::Input => {
+            // consume builtin
+            let builtin = scanner.next_token()?;
             let preexp = Exp {
                 exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Sqrt(generate_exps(scanner)?),
-                })),
-            };
-            return generate_exp_preexp(scanner, preexp);
-        }
-        Token::Len => {
-            let preexp = Exp {
-                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Len(generate_exps(scanner)?),
-                })),
-            };
-            return generate_exp_preexp(scanner, preexp);
-        },
-        Token::Round => {
-            let preexp = Exp {
-                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Round(generate_exps(scanner)?),
-                })),
-            };
-            return generate_exp_preexp(scanner, preexp);
-        },
-        Token::Input => {
-            let preexp = Exp {
-                exp: Box::new(ExpKind::BuiltIn(BuiltIn {
-                    builtin: BuiltInKind::Input(generate_exps(scanner)?),
+                    builtin: lookup::lookup_builtin(builtin, generate_exps(scanner)?)?,
                 })),
             };
             return generate_exp_preexp(scanner, preexp);
         }
         // num and infix cases
         Token::Num(value) => {
+            // consume num
+            consume_token(scanner, TokenDiscriminants::Num)?;
             match scanner.peek_next() {
                 // just a number followed by ; or , or )
-                // todo, i think if i include curly here, i can ditch parens in nest
+                // todo: i think if i include lcurly here, i can ditch parens in nest conditional
                 Token::SColon | Token::Comma | Token::RParen | Token::RBracket => {
-                    ExpKind::Num(value)
+                    return Ok(Exp {
+                        exp: Box::new(ExpKind::Num(value)),
+                    });
                 }
                 // Infix operators
                 _ => {
@@ -237,7 +224,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
                     // operator is next, and is consumed by next_token, leaving generate_exp to get exp
                     generate_infix(
                         ExpKind::Num(value),
-                        operator::lookup_infix(scanner.next_token()?)?,
+                        lookup::lookup_infix(scanner.next_token()?)?,
                         generate_exp(scanner)?,
                     )?
                 }
@@ -245,16 +232,22 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
         }
         // array initialization
         Token::LBracket => {
+            // consume [
+            consume_token(scanner, TokenDiscriminants::LBracket)?;
             // consume size exp
             let exp = generate_exp(scanner)?;
 
             // consume ]
             consume_token(scanner, TokenDiscriminants::RBracket)?;
 
-            ExpKind::ArrayInit { size: exp }
+            return Ok(Exp {
+                exp: Box::new(ExpKind::ArrayInit { size: exp }),
+            });
         }
         // parenthesized exp
         Token::LParen => {
+            // consume (
+            consume_token(scanner, TokenDiscriminants::LParen)?;
             // consume exp
             let exp = generate_exp(scanner)?;
             // consume )
@@ -265,33 +258,25 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
             return generate_exp_preexp(scanner, exp);
         }
 
-        // unop exp
-        Token::Minus => {
+        // unary operator expressions
+        Token::Minus | Token::Not => {
+            let unop = scanner.next_token()?;
             let exp = generate_exp(scanner)?;
-            ExpKind::Unary(
-                Unop {
-                    unop: UnopKind::Neg,
-                },
-                exp,
-            )
-        }
-        Token::Not => {
-            let exp = generate_exp(scanner)?;
-            ExpKind::Unary(
-                Unop {
-                    unop: UnopKind::Not,
-                },
-                exp,
-            )
+            return Ok(Exp {
+                exp: Box::new(ExpKind::Unary(
+                    Unop {
+                        unop: lookup_unop(unop)?,
+                    },
+                    exp,
+                )),
+            });
         }
         // illegal
         other => {
             dbg!();
             return Err(ASTError::UnexpectedToken(other));
         }
-    };
-
-    Ok(Exp { exp: Box::new(exp) })
+    })
 }
 
 // either returns just expression, or full expression with next
@@ -309,7 +294,7 @@ fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTErr
             exp: Box::new(ExpKind::Infix(
                 preexp,
                 Op {
-                    op: operator::lookup_infix(scanner.next_token()?)?,
+                    op: lookup::lookup_infix(scanner.next_token()?)?,
                 },
                 generate_exp(scanner)?,
             )),
@@ -355,36 +340,34 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
         _ => {
             // generate infix: name op exp
             // operator is next, and is consumed by next_token, leaving generate_exp to get exp
-            generate_infix(
+            return generate_infix(
                 ExpKind::Name(name),
-                operator::lookup_infix(scanner.next_token()?)?,
+                lookup::lookup_infix(scanner.next_token()?)?,
                 generate_exp(scanner)?,
-            )?
+            );
         }
     };
 
     Ok(Exp { exp: Box::new(exp) })
 }
 
-
 fn generate_exps(scanner: &mut Scanner) -> Result<Exps, ASTError> {
-
     let mut exps = Vec::new();
     // consume (
     consume_token(scanner, TokenDiscriminants::LParen)?;
 
-    // consume args 
+    // consume args
     while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
         exps.push(generate_exp(scanner)?);
         // consume a comma if not the last arg
-        if !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen){ 
+        if !variant_equal(&scanner.peek_next(), TokenDiscriminants::RParen) {
             consume_token(scanner, TokenDiscriminants::Comma)?;
         }
     }
     // consume )
     consume_token(scanner, TokenDiscriminants::RParen)?;
 
-    Ok(Exps{exps})
+    Ok(Exps { exps })
 }
 
 // generate AST for Nest: If, If/Else, and While
@@ -427,8 +410,10 @@ fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
 }
 
 // Generates AST for Infix expression
-fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<ExpKind, ASTError> {
-    Ok(ExpKind::Infix(Exp { exp: Box::new(lhs) }, Op { op }, rhs))
+fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<Exp, ASTError> {
+    Ok(Exp {
+        exp: Box::new(ExpKind::Infix(Exp { exp: Box::new(lhs) }, Op { op }, rhs)),
+    })
 }
 
 // Consumes a token from the scanner specified by variant.

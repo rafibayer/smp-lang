@@ -21,7 +21,6 @@ const MAIN: &str = "main";
 const EPSILON: f64 = 0.0000001;
 
 
-
 // Interpreter evaluates a program Symbol (AST).
 pub struct Interpreter {
     program: Program,

@@ -119,5 +119,16 @@ def main() { # the main function is called main()!
 No! :)  
 This was purely for fun and for learning. This language is most certainly full of bugs, and the code is not very extensible in its current state. However, I hope that anyone reading this can learn from my experiences and mistakes while implementing their own interpreters in Rust or any other language. 
 
+## Ok but I really really want to...
+Alright, but don't say I didn't warn you.  
+Requirements: 
+- `Rust`  
+
+Building:
+- `cargo build --release`  
+
+Usage:
+- `smp.exe <your source file>.smp`
+
 ## Planned Features
-- Imports? Standard Library>
+- Imports? Standard Library?
