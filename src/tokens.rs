@@ -8,7 +8,7 @@ block ::= "{" statement* "}"
 statement ::= "return" exp ";" | name ":=" exp ";" | name "[" exp "]" ":=" exp ";"|  exp ";" | nest
 nest ::= "if" (exp) block | "if" (exp) block "else" block | "while" (exp) block
 exp ::= name | num | "[" exp "]" | exp op exp | name "[" exp "]" | name "(" exps ")" | builtin | "(" exp ")" | unop exp
-builtin ::= "sqrt" "(" exp ")" | "len" "(" exp ")" | "round" "(" exp ")"
+builtin ::= "sqrt" "(" exps ")" | "len" "(" exps ")" | "round" "(" exps ")" | "input" "(" exps ")"
 exps ::= "" | exp "," exps
 unop ::= "!" | "-"
 op ::= logical | comparison | "+" | "*" | "-" | "/" | "%"

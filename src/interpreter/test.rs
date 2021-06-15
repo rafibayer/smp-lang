@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod tests {
     use super::super::*;
-    
     #[test]
     fn test_assign_return() {
         /* AST for program:
@@ -30,7 +29,8 @@ mod tests {
                                     name: String::from("a"),
                                     exp: Exp {
                                         // 1;
-                                        exp: Box::new(ExpKind::Num(1f64))
+                                        exp: Box::new(ExpKind::Num(1f64)),
+                                        src_ln: 2
                                     }
                                 }
                             },
@@ -39,7 +39,8 @@ mod tests {
                                 statement: StatementKind::Return(
                                     Exp {
                                         // a;
-                                        exp: Box::new(ExpKind::Name(String::from("a")))
+                                        exp: Box::new(ExpKind::Name(String::from("a"))),
+                                        src_ln: 2
                                     }
                                 )
                             }
@@ -81,7 +82,8 @@ mod tests {
                             Statement {
                                 statement: StatementKind::Return(
                                     Exp {
-                                        exp: Box::new(ExpKind::Name(String::from("a")))
+                                        exp: Box::new(ExpKind::Name(String::from("a"))),
+                                        src_ln: 2
                                     }
                                 )
                             }
@@ -103,7 +105,8 @@ mod tests {
                                 statement: StatementKind::Return(
                                     Exp {
                                         exp: Box::new(ExpKind::Call(String::from("other"),
-                                        Exps { exps: vec![ Exp { exp: Box::new(ExpKind::Num(3f64))}] }))
+                                        Exps { exps: vec![ Exp { exp: Box::new(ExpKind::Num(3f64)), src_ln: 6}] })),
+                                        src_ln: 6
                                     }
                                 )
                             }

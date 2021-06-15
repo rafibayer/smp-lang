@@ -89,6 +89,7 @@ fn generate_block(scanner: &mut Scanner) -> Result<Block, ASTError> {
     consume_token(scanner, TokenDiscriminants::LCurly)?;
 
     let mut statements = Vec::new();
+    // keep consuming statements until we reach the end of the block
     while !variant_equal(&scanner.peek_next(), TokenDiscriminants::RCurly) {
         statements.push(generate_statement(scanner)?);
     }
@@ -155,9 +156,10 @@ fn generate_statement(scanner: &mut Scanner) -> Result<Statement, ASTError> {
                         // consume array access
                         let preexp = Exp {
                             exp: Box::new(ExpKind::ArrayAccess {
-                                name: name,
+                                name,
                                 index: index_exp,
                             }),
+                            src_ln: scanner.src_line,
                         };
                         // consume rest of expression
                         let exp = generate_exp_preexp(scanner, preexp)?;
@@ -203,6 +205,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
                 exp: Box::new(ExpKind::BuiltIn(BuiltIn {
                     builtin: lookup::lookup_builtin(builtin, generate_exps(scanner)?)?,
                 })),
+                src_ln: scanner.src_line,
             };
             return generate_exp_preexp(scanner, preexp);
         }
@@ -216,6 +219,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
                 Token::SColon | Token::Comma | Token::RParen | Token::RBracket => {
                     return Ok(Exp {
                         exp: Box::new(ExpKind::Num(value)),
+                        src_ln: scanner.src_line,
                     });
                 }
                 // Infix operators
@@ -242,6 +246,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
 
             return Ok(Exp {
                 exp: Box::new(ExpKind::ArrayInit { size: exp }),
+                src_ln: scanner.src_line,
             });
         }
         // parenthesized exp
@@ -253,8 +258,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
             // consume )
             consume_token(scanner, TokenDiscriminants::RParen)?;
 
-            // either returns just expression, or full expression with next
-            // infix operator
+            // checks to see if expression in parens is continued
             return generate_exp_preexp(scanner, exp);
         }
 
@@ -269,6 +273,7 @@ fn generate_exp(scanner: &mut Scanner) -> Result<Exp, ASTError> {
                     },
                     exp,
                 )),
+                src_ln: scanner.src_line,
             });
         }
         // illegal
@@ -298,6 +303,7 @@ fn generate_exp_preexp(scanner: &mut Scanner, preexp: Exp) -> Result<Exp, ASTErr
                 },
                 generate_exp(scanner)?,
             )),
+            src_ln: scanner.src_line,
         }),
     }
 }
@@ -348,7 +354,7 @@ fn generate_exp_name(scanner: &mut Scanner, name: String) -> Result<Exp, ASTErro
         }
     };
 
-    Ok(Exp { exp: Box::new(exp) })
+    Ok(Exp { exp: Box::new(exp), src_ln: scanner.src_line })
 }
 
 fn generate_exps(scanner: &mut Scanner) -> Result<Exps, ASTError> {
@@ -400,8 +406,6 @@ fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
             NestKind::While { cond, block }
         }
         _ => {
-            dbg!();
-
             return Err(ASTError::UnexpectedToken(next));
         }
     };
@@ -411,8 +415,10 @@ fn generate_nest(scanner: &mut Scanner) -> Result<Nest, ASTError> {
 
 // Generates AST for Infix expression
 fn generate_infix(lhs: ExpKind, op: OpKind, rhs: Exp) -> Result<Exp, ASTError> {
+    let src_ln = rhs.src_ln;
     Ok(Exp {
-        exp: Box::new(ExpKind::Infix(Exp { exp: Box::new(lhs) }, Op { op }, rhs)),
+        exp: Box::new(ExpKind::Infix(Exp { exp: Box::new(lhs), src_ln }, Op { op }, rhs)),
+        src_ln,
     })
 }
 
@@ -424,8 +430,8 @@ fn consume_token(scanner: &mut Scanner, variant: TokenDiscriminants) -> Result<T
         return Ok(next);
     }
     // todo: remove
-    let disc: TokenDiscriminants = next.clone().into();
-    println!("expected: {:?}, got: {:?}", variant, disc);
+    // let disc: TokenDiscriminants = next.clone().into();
+    // eprintln!("expected: {:?}, got: {:?}", variant, disc);
     Err(ASTError::UnexpectedToken(next))
 }
 

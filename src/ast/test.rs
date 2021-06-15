@@ -20,9 +20,6 @@ mod test {
             }
             "#)).unwrap();
         
-        let prog = generate_ast(&mut scan);
-
-        println!("{:#?}", prog.unwrap());
-        
+        generate_ast(&mut scan).unwrap();
     }
 }

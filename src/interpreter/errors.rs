@@ -11,7 +11,6 @@ pub enum InterpreterError {
         found_type: ValueDiscriminants,
         expected_type: ValueDiscriminants,
     },
-    NoMainDefined,
     ArgMismatch {
         got: usize,
         expected: usize,
@@ -21,7 +20,6 @@ pub enum InterpreterError {
     IOError(io::Error),
     InvalidInput(ParseFloatError),
     InvalidChar(FromUtf8Error),
-    PrecedenceError(ExpKind),
 }
 
 impl From<io::Error> for InterpreterError {

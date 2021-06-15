@@ -1,6 +1,4 @@
 
-
 def main() {
-    arr := -5 - 1;
-    return arr;
+    return input();
 }

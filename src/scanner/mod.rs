@@ -18,7 +18,7 @@ pub struct Scanner {
     input: String,
     cur: usize,
     next: Token,
-    src_line: usize,
+    pub src_line: u32,
 }
 
 impl Scanner {

@@ -102,7 +102,7 @@ impl Interpreter {
 
     // Evaluates the given expression in the given Environment
     fn eval_exp(&self, exp: &Exp, env: &mut Environment) -> Result<Value, InterpreterError> {
-        match &*exp.exp {
+        let res = match &*exp.exp {
             ExpKind::Name(name) => env.get_var(&name),
             ExpKind::Num(value) => Ok(Value::from(*value)),
             ExpKind::Infix(lhs, op, rhs) => self.eval_infix(lhs, op, rhs, env),
@@ -123,7 +123,13 @@ impl Interpreter {
                 let i = Value::into_f64(self.eval_exp(index, env)?)?;
                 Ok(Value::from(arr[i as usize]))
             }
+        };
+
+        if res.is_err() {
+            eprintln!("Error: ln:{}", exp.src_ln);
         }
+
+        res
     }
 
     fn eval_builtin(
@@ -224,7 +230,6 @@ impl Interpreter {
                 // statments composed of a single expression print but evaluate to nothing.
                 // e.g. 5+5;
                 // this will print "5" but the statement has no value
-
                 println!("{}", self.eval_exp(&exp, env)?);
                 Ok(None)
             }
