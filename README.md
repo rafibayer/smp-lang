@@ -1,5 +1,8 @@
 # SMP: A SiMPle Programming Language
 An extremely simple interpreter written in Rust.
+
+# Archived!
+This project will no longer be maintained, but if you're interested check out the followup: [Puffin](https://github.com/rafibayer/puffin), a cleaner, more powerful language also written in Rust. 
  
 ## Why
 In Spring of 2021, I took [CSE 413](https://courses.cs.washington.edu/courses/cse413/) (Programming Languages & Implementation) at the University of Washington. This class covered the fundamentals of language internals. During this time I was also learning Rust on the side. After completing the class I decided it would be fun to try and implement a new language on my own.
